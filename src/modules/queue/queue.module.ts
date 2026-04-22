@@ -27,4 +27,4 @@ import { SYSTEM_LOGS_QUEUE } from '../../common/constants/queue-names.js';
   ],
   exports: [ClientsModule],
 })
-export class QueueModule {}
+export class QueueModule { }

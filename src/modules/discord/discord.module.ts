@@ -11,8 +11,19 @@ import { PingCommand } from './commands/ping.command.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         token: config.getOrThrow<string>('DISCORD_TOKEN'),
-        intents: [IntentsBitField.Flags.Guilds],
-        development: config.get<string>('DEV_GUILD_ID') ? [config.getOrThrow<string>('DEV_GUILD_ID')] : undefined,
+        intents: [
+          IntentsBitField.Flags.Guilds,
+          IntentsBitField.Flags.GuildMessages,
+          IntentsBitField.Flags.GuildMembers,
+          IntentsBitField.Flags.GuildMessageReactions,
+          IntentsBitField.Flags.GuildVoiceStates,
+          IntentsBitField.Flags.MessageContent,
+          IntentsBitField.Flags.DirectMessages,
+          IntentsBitField.Flags.DirectMessageReactions,
+        ],
+        development: config.get<string>('DEV_GUILD_ID')
+          ? [config.getOrThrow<string>('DEV_GUILD_ID')]
+          : undefined,
       }),
     }),
   ],
