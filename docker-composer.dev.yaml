@@ -1,0 +1,78 @@
+services:
+  app:
+    image: docker.io/library/node:22-alpine
+    container_name: taverna-app-dev
+    restart: unless-stopped
+    working_dir: /usr/src/app
+    command: sh -c "npm ci && npm run start:dev"
+    env_file:
+      - .env
+    environment:
+      MONGO_APP_URI: mongodb://mongodb:27017/taverna-app
+      MONGO_LOGS_URI: mongodb://mongodb:27017/taverna-logs
+      RABBITMQ_URL: amqp://taverna:taverna@rabbitmq:5672
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    volumes:
+      - .:/usr/src/app:Z
+      - app-node-modules:/usr/src/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: taverna-redis-dev
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data-dev:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: docker.io/library/rabbitmq:3-management-alpine
+    container_name: taverna-rabbitmq-dev
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: taverna
+      RABBITMQ_DEFAULT_PASS: taverna
+    volumes:
+      - rabbitmq-data-dev:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: docker.io/library/mongo:8
+    container_name: taverna-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb-data-dev:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.runCommand({ ping: 1 }).ok']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  app-node-modules:
+  redis-data-dev:
+  rabbitmq-data-dev:
+  mongodb-data-dev:
