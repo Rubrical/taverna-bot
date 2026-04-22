@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-import type { LogLevel } from '../../../../common/types/index.js';
+import type { LogLevel } from '../../../../common/types';
 
 export type SystemLogDocument = HydratedDocument<SystemLog>;
 

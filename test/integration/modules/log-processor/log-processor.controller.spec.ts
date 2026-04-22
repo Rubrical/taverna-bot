@@ -4,13 +4,21 @@ import { LogProcessorController } from '../../../../src/modules/log-processor/in
 import { LogProcessorRepository } from '../../../../src/modules/log-processor/infrastructure/log-processor.repository';
 import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
 
+type LogProcessorRepositoryMock = {
+  save: jest.Mock<Promise<void>, [LogEntry]>;
+};
+
+function createSaveMock(): LogProcessorRepositoryMock['save'] {
+  return jest.fn<Promise<void>, [LogEntry]>().mockResolvedValue(undefined);
+}
+
 describe('LogProcessorController', () => {
   let controller: LogProcessorController;
-  let repository: jest.Mocked<LogProcessorRepository>;
+  let repository: LogProcessorRepositoryMock;
 
   beforeEach(async () => {
-    const mockRepository = {
-      save: jest.fn().mockResolvedValue(undefined),
+    const mockRepository: LogProcessorRepositoryMock = {
+      save: createSaveMock(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +32,7 @@ describe('LogProcessorController', () => {
     }).compile();
 
     controller = module.get<LogProcessorController>(LogProcessorController);
-    repository = module.get(LogProcessorRepository);
+    repository = module.get<LogProcessorRepositoryMock>(LogProcessorRepository);
   });
 
   it('should be defined', () => {

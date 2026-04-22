@@ -1,4 +1,4 @@
-import type { LogLevel } from '../../../../common/types/index.js';
+import type { LogLevel } from '../../../../common/types';
 
 export interface LogEntry {
   readonly level: LogLevel;

@@ -1,6 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { SlashCommandContext } from 'necord';
 
 import { PingCommand } from '../../../../src/modules/discord/commands/ping.command';
+
+interface ReplyPayload {
+  readonly content: string;
+}
+
+type MockInteraction = {
+  readonly createdTimestamp: number;
+  readonly reply: jest.Mock<Promise<void>, [ReplyPayload]>;
+};
+
+function createReplyMock(): MockInteraction['reply'] {
+  return jest.fn<Promise<void>, [ReplyPayload]>().mockResolvedValue(undefined);
+}
+
+function createContext(latency: number): {
+  readonly context: SlashCommandContext;
+  readonly interaction: MockInteraction;
+} {
+  const interaction: MockInteraction = {
+    createdTimestamp: Date.now() - latency,
+    reply: createReplyMock(),
+  };
+
+  return {
+    context: [interaction as unknown as SlashCommandContext[0]],
+    interaction,
+  };
+}
 
 describe('PingCommand', () => {
   let command: PingCommand;
@@ -19,30 +48,37 @@ describe('PingCommand', () => {
 
   describe('onPing()', () => {
     it('should reply with pong and latency', async () => {
-      const mockInteraction = {
-        createdTimestamp: Date.now() - 42,
-        reply: jest.fn().mockResolvedValue(undefined),
-      };
+      const { context, interaction } = createContext(42);
 
-      await command.onPing([mockInteraction as any]);
+      await command.onPing(context);
 
-      expect(mockInteraction.reply).toHaveBeenCalledTimes(1);
-      expect(mockInteraction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('🏓 Pong!'),
-        }),
-      );
+      expect(interaction.reply).toHaveBeenCalledTimes(1);
+
+      const replyCall = interaction.reply.mock.calls[0];
+      expect(replyCall).toBeDefined();
+
+      if (!replyCall) {
+        return;
+      }
+
+      const [replyPayload] = replyCall;
+      expect(replyPayload.content).toContain('🏓 Pong!');
     });
 
     it('should include latency in the reply', async () => {
-      const mockInteraction = {
-        createdTimestamp: Date.now() - 100,
-        reply: jest.fn().mockResolvedValue(undefined),
-      };
+      const { context, interaction } = createContext(100);
 
-      await command.onPing([mockInteraction as any]);
+      await command.onPing(context);
 
-      const replyContent = mockInteraction.reply.mock.calls[0][0].content;
+      const replyCall = interaction.reply.mock.calls[0];
+      expect(replyCall).toBeDefined();
+
+      if (!replyCall) {
+        return;
+      }
+
+      const [replyPayload] = replyCall;
+      const replyContent = replyPayload.content;
       expect(replyContent).toMatch(/Latency: \*\*\d+ms\*\*/);
     });
   });

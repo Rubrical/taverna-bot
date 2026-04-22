@@ -33,12 +33,7 @@ export class CustomLoggerService implements LoggerService {
     this.printAndShip('verbose', message, context);
   }
 
-  private printAndShip(
-    level: LogLevel,
-    message: string,
-    context?: string,
-    metadata?: Record<string, unknown>,
-  ): void {
+  private printAndShip(level: LogLevel, message: string, context?: string, metadata?: Record<string, unknown>): void {
     const timestamp = new Date().toISOString();
     const prefix = context ? `[${context}]` : '';
     const tag = level.toUpperCase().padEnd(7);

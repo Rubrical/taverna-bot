@@ -4,10 +4,7 @@ import { Model } from 'mongoose';
 
 import { LOGS_CONNECTION } from '../../database/database.constants.js';
 import type { LogEntry } from '../../logger/domain/interfaces/log-entry.interface.js';
-import {
-  SystemLog,
-  type SystemLogDocument,
-} from '../domain/schemas/system-log.schema.js';
+import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.schema.js';
 
 @Injectable()
 export class LogProcessorRepository {

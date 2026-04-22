@@ -1,17 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClientProxy } from '@nestjs/microservices';
 
+import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
 import { CustomLoggerService } from '../../../../src/modules/logger/infrastructure/logger.service';
 import { RABBITMQ_SERVICE } from '../../../../src/common/constants/injection-tokens';
 import { SYSTEM_LOGS_QUEUE } from '../../../../src/common/constants/queue-names';
 
+type RmqEmitResult = {
+  subscribe: jest.Mock<void, []>;
+};
+
+type RmqClientMock = {
+  emit: jest.Mock<RmqEmitResult, [string, LogEntry]>;
+};
+
+function createEmitMock(): RmqClientMock['emit'] {
+  return jest.fn<RmqEmitResult, [string, LogEntry]>().mockReturnValue({ subscribe: jest.fn<void, []>() });
+}
+
 describe('CustomLoggerService', () => {
   let service: CustomLoggerService;
-  let rmqClient: jest.Mocked<Pick<ClientProxy, 'emit'>>;
+  let rmqClient: RmqClientMock;
 
   beforeEach(async () => {
     rmqClient = {
-      emit: jest.fn().mockReturnValue({ subscribe: jest.fn() }),
+      emit: createEmitMock(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -136,11 +148,15 @@ describe('CustomLoggerService', () => {
 
       service.log('Timestamp test');
 
-      const emittedEntry: any = (rmqClient.emit as jest.Mock).mock.calls[0][1];
+      const emittedEntry = rmqClient.emit.mock.calls[0]?.[1];
+      expect(emittedEntry).toBeDefined();
+
+      if (!emittedEntry) {
+        return;
+      }
+
       expect(emittedEntry.timestamp).toBeDefined();
-      expect(new Date(emittedEntry.timestamp).toISOString()).toBe(
-        emittedEntry.timestamp,
-      );
+      expect(new Date(emittedEntry.timestamp).toISOString()).toBe(emittedEntry.timestamp);
 
       jest.restoreAllMocks();
     });
