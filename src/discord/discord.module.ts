@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { NecordModule } from 'necord';
 import { IntentsBitField } from 'discord.js';
 
-import { PingCommand } from './commands/ping.command.js';
+import { PingCommand } from './commands/ping.command';
 
 @Module({
   imports: [

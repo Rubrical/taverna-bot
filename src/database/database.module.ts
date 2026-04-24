@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { LOGS_CONNECTION } from './database.constants.js';
+import { LOGS_CONNECTION } from './database.constants';
 
 @Module({
   imports: [

@@ -2,8 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 
-import { RABBITMQ_SERVICE } from '../../common/constants/injection-tokens.js';
-import { SYSTEM_LOGS_QUEUE } from '../../common/constants/queue-names.js';
+import { RABBITMQ_SERVICE } from '../common/constants/injection-tokens';
+import { SYSTEM_LOGS_QUEUE } from '../common/constants/queue-names';
 
 @Global()
 @Module({

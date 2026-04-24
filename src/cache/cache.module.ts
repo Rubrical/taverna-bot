@@ -21,4 +21,11 @@ import { redisStore } from 'cache-manager-redis-yet';
   ],
   exports: [CacheModule],
 })
+/**
+ * ### How to use:
+ * 1. Import dependencies:`import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';`
+ * 2. Inject services: `@Inject(CACHE_MANAGER) private cacheManager: Cache`
+ *
+ * The module is global so it can be injected on any other module
+ */
 export class AppCacheModule {}
