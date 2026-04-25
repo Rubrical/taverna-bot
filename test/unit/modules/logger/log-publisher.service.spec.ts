@@ -23,13 +23,14 @@ function createLogEntry(): LogEntry {
 describe('LogPublisher', () => {
   let publisher: LogPublisher;
   let client: ClientProxyMock;
+  let consoleWarnSpy: jest.SpiedFunction<typeof ConsoleLogger.prototype.warn>;
 
   beforeEach(async () => {
     client = {
       emit: jest.fn().mockReturnValue(of(undefined)),
     };
 
-    jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
+    consoleWarnSpy = jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,17 +63,13 @@ describe('LogPublisher', () => {
     });
 
     expect(() => publisher.publish(createLogEntry())).not.toThrow();
-    expect(ConsoleLogger.prototype.warn).toHaveBeenCalledWith(
-      'Failed to publish log entry to RabbitMQ: connection failed',
-    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to publish log entry to RabbitMQ: connection failed');
   });
 
   it('should not throw when RabbitMQ emit fails asynchronously', () => {
     client.emit.mockReturnValue(throwError(() => new Error('channel closed')));
 
     expect(() => publisher.publish(createLogEntry())).not.toThrow();
-    expect(ConsoleLogger.prototype.warn).toHaveBeenCalledWith(
-      'Failed to publish log entry to RabbitMQ: channel closed',
-    );
+    expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to publish log entry to RabbitMQ: channel closed');
   });
 });

@@ -18,6 +18,9 @@ describe('TavernaLogger', () => {
   let logger: TavernaLogger;
   let publisher: LogPublisherMock;
   let config: ConfigServiceMock;
+  let consoleLogSpy: jest.SpiedFunction<typeof ConsoleLogger.prototype.log>;
+  let consoleWarnSpy: jest.SpiedFunction<typeof ConsoleLogger.prototype.warn>;
+  let consoleErrorSpy: jest.SpiedFunction<typeof ConsoleLogger.prototype.error>;
 
   beforeEach(async () => {
     publisher = {
@@ -27,11 +30,11 @@ describe('TavernaLogger', () => {
       get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),
     };
 
-    jest.spyOn(ConsoleLogger.prototype, 'log').mockImplementation();
-    jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
+    consoleLogSpy = jest.spyOn(ConsoleLogger.prototype, 'log').mockImplementation();
+    consoleWarnSpy = jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
     jest.spyOn(ConsoleLogger.prototype, 'debug').mockImplementation();
     jest.spyOn(ConsoleLogger.prototype, 'verbose').mockImplementation();
-    jest.spyOn(ConsoleLogger.prototype, 'error').mockImplementation();
+    consoleErrorSpy = jest.spyOn(ConsoleLogger.prototype, 'error').mockImplementation();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,7 +63,7 @@ describe('TavernaLogger', () => {
     logger.log('Creating character', { userId: 'user-1' });
 
     expect(config.get).toHaveBeenCalledWith('APPLICATION_NAME', 'Taverna Bot');
-    expect(ConsoleLogger.prototype.log).toHaveBeenCalledWith('Creating character', 'CharacterService');
+    expect(consoleLogSpy).toHaveBeenCalledWith('Creating character', 'CharacterService');
     expect(publisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         level: 'log',
@@ -74,7 +77,7 @@ describe('TavernaLogger', () => {
   it('should support explicit context for Nest logger compatibility', () => {
     logger.log('Application started', 'Bootstrap');
 
-    expect(ConsoleLogger.prototype.log).toHaveBeenCalledWith('Application started', 'Bootstrap');
+    expect(consoleLogSpy).toHaveBeenCalledWith('Application started', 'Bootstrap');
     expect(publisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         level: 'log',
@@ -89,7 +92,7 @@ describe('TavernaLogger', () => {
 
     logger.warn('Cache miss', { key: 'sheet:user-1' });
 
-    expect(ConsoleLogger.prototype.warn).toHaveBeenCalledWith('Cache miss', 'CacheService');
+    expect(consoleWarnSpy).toHaveBeenCalledWith('Cache miss', 'CacheService');
     expect(publisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         level: 'warn',
@@ -106,26 +109,22 @@ describe('TavernaLogger', () => {
 
     logger.error('Failed to create character', error, { userId: 'user-1' });
 
-    expect(ConsoleLogger.prototype.error).toHaveBeenCalledWith(
-      'Failed to create character',
-      error.stack,
-      'CharacterService',
-    );
-    expect(publisher.publish).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: 'error',
-        message: 'Failed to create character',
-        context: 'CharacterService',
-        metadata: {
-          userId: 'user-1',
-          error: expect.objectContaining({
-            name: 'Error',
-            message: 'Database unavailable',
-            stack: error.stack,
-          }),
-        },
-      }),
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to create character', error.stack, 'CharacterService');
+
+    const publishedEntry = publisher.publish.mock.calls[0]?.[0];
+    expect(publishedEntry).toMatchObject({
+      level: 'error',
+      message: 'Failed to create character',
+      context: 'CharacterService',
+      metadata: {
+        userId: 'user-1',
+      },
+    });
+    expect(publishedEntry?.metadata?.error).toMatchObject({
+      name: 'Error',
+      message: 'Database unavailable',
+      stack: error.stack,
+    });
   });
 
   it('should keep legacy string stack support for error logs', () => {
@@ -133,7 +132,7 @@ describe('TavernaLogger', () => {
 
     logger.error('Failed to bootstrap', 'stack trace');
 
-    expect(ConsoleLogger.prototype.error).toHaveBeenCalledWith('Failed to bootstrap', 'stack trace', 'Bootstrap');
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to bootstrap', 'stack trace', 'Bootstrap');
     expect(publisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         level: 'error',
