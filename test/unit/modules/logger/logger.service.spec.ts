@@ -1,164 +1,158 @@
+import { ConsoleLogger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { TavernaLogger } from '../../../../src/modules/logger/infrastructure/logger.service';
+import { LogPublisher } from '../../../../src/modules/logger/infrastructure/log-publisher.service';
 import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
-import { CustomLoggerService } from '../../../../src/modules/logger/infrastructure/logger.service';
-import { RABBITMQ_SERVICE } from '../../../../src/common/constants/injection-tokens';
-import { SYSTEM_LOGS_QUEUE } from '../../../../src/common/constants/queue-names';
 
-type RmqEmitResult = {
-  subscribe: jest.Mock<void, []>;
+type LogPublisherMock = {
+  publish: jest.Mock<void, [LogEntry]>;
 };
 
-type RmqClientMock = {
-  emit: jest.Mock<RmqEmitResult, [string, LogEntry]>;
+type ConfigServiceMock = {
+  get: jest.Mock<string, [string, string]>;
 };
 
-function createEmitMock(): RmqClientMock['emit'] {
-  return jest.fn<RmqEmitResult, [string, LogEntry]>().mockReturnValue({ subscribe: jest.fn<void, []>() });
-}
-
-describe('CustomLoggerService', () => {
-  let service: CustomLoggerService;
-  let rmqClient: RmqClientMock;
+describe('TavernaLogger', () => {
+  let logger: TavernaLogger;
+  let publisher: LogPublisherMock;
+  let config: ConfigServiceMock;
 
   beforeEach(async () => {
-    rmqClient = {
-      emit: createEmitMock(),
+    publisher = {
+      publish: jest.fn<void, [LogEntry]>(),
     };
+    config = {
+      get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),
+    };
+
+    jest.spyOn(ConsoleLogger.prototype, 'log').mockImplementation();
+    jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
+    jest.spyOn(ConsoleLogger.prototype, 'debug').mockImplementation();
+    jest.spyOn(ConsoleLogger.prototype, 'verbose').mockImplementation();
+    jest.spyOn(ConsoleLogger.prototype, 'error').mockImplementation();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CustomLoggerService,
+        TavernaLogger,
         {
-          provide: RABBITMQ_SERVICE,
-          useValue: rmqClient,
+          provide: LogPublisher,
+          useValue: publisher,
+        },
+        {
+          provide: ConfigService,
+          useValue: config,
         },
       ],
     }).compile();
 
-    service = module.get<CustomLoggerService>(CustomLoggerService);
+    logger = module.get<TavernaLogger>(TavernaLogger);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  describe('log()', () => {
-    it('should write to console and emit to RabbitMQ', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+  it('should publish log entries with context set once', () => {
+    logger.setContext('CharacterService');
 
-      service.log('Test message', 'TestContext');
+    logger.log('Creating character', { userId: 'user-1' });
 
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-      expect(rmqClient.emit).toHaveBeenCalledWith(
-        SYSTEM_LOGS_QUEUE,
-        expect.objectContaining({
-          level: 'log',
-          message: 'Test message',
-          context: 'TestContext',
-        }),
-      );
-
-      consoleSpy.mockRestore();
-    });
+    expect(config.get).toHaveBeenCalledWith('APPLICATION_NAME', 'Taverna Bot');
+    expect(ConsoleLogger.prototype.log).toHaveBeenCalledWith('Creating character', 'CharacterService');
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'log',
+        message: 'Creating character',
+        context: 'CharacterService',
+        metadata: { userId: 'user-1' },
+      }),
+    );
   });
 
-  describe('error()', () => {
-    it('should write to stderr and emit with trace metadata', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+  it('should support explicit context for Nest logger compatibility', () => {
+    logger.log('Application started', 'Bootstrap');
 
-      service.error('Something failed', 'stack trace here', 'ErrorContext');
-
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-      expect(rmqClient.emit).toHaveBeenCalledWith(
-        SYSTEM_LOGS_QUEUE,
-        expect.objectContaining({
-          level: 'error',
-          message: 'Something failed',
-          context: 'ErrorContext',
-          metadata: { trace: 'stack trace here' },
-        }),
-      );
-
-      consoleSpy.mockRestore();
-    });
+    expect(ConsoleLogger.prototype.log).toHaveBeenCalledWith('Application started', 'Bootstrap');
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'log',
+        message: 'Application started',
+        context: 'Bootstrap',
+      }),
+    );
   });
 
-  describe('warn()', () => {
-    it('should write to console.warn and emit to RabbitMQ', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+  it('should publish warning metadata', () => {
+    logger.setContext('CacheService');
 
-      service.warn('Warning message');
+    logger.warn('Cache miss', { key: 'sheet:user-1' });
 
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-      expect(rmqClient.emit).toHaveBeenCalledWith(
-        SYSTEM_LOGS_QUEUE,
-        expect.objectContaining({
-          level: 'warn',
-          message: 'Warning message',
-        }),
-      );
-
-      consoleSpy.mockRestore();
-    });
+    expect(ConsoleLogger.prototype.warn).toHaveBeenCalledWith('Cache miss', 'CacheService');
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'warn',
+        message: 'Cache miss',
+        context: 'CacheService',
+        metadata: { key: 'sheet:user-1' },
+      }),
+    );
   });
 
-  describe('debug()', () => {
-    it('should write to console.debug and emit to RabbitMQ', () => {
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
+  it('should publish Error details as structured metadata', () => {
+    logger.setContext('CharacterService');
+    const error = new Error('Database unavailable');
 
-      service.debug('Debug info', 'DebugCtx');
+    logger.error('Failed to create character', error, { userId: 'user-1' });
 
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-      expect(rmqClient.emit).toHaveBeenCalledWith(
-        SYSTEM_LOGS_QUEUE,
-        expect.objectContaining({
-          level: 'debug',
-          message: 'Debug info',
-          context: 'DebugCtx',
-        }),
-      );
-
-      consoleSpy.mockRestore();
-    });
+    expect(ConsoleLogger.prototype.error).toHaveBeenCalledWith(
+      'Failed to create character',
+      error.stack,
+      'CharacterService',
+    );
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'error',
+        message: 'Failed to create character',
+        context: 'CharacterService',
+        metadata: {
+          userId: 'user-1',
+          error: expect.objectContaining({
+            name: 'Error',
+            message: 'Database unavailable',
+            stack: error.stack,
+          }),
+        },
+      }),
+    );
   });
 
-  describe('verbose()', () => {
-    it('should write to console.log and emit to RabbitMQ', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+  it('should keep legacy string stack support for error logs', () => {
+    logger.setContext('Bootstrap');
 
-      service.verbose('Verbose details');
+    logger.error('Failed to bootstrap', 'stack trace');
 
-      expect(consoleSpy).toHaveBeenCalledTimes(1);
-      expect(rmqClient.emit).toHaveBeenCalledWith(
-        SYSTEM_LOGS_QUEUE,
-        expect.objectContaining({
-          level: 'verbose',
-          message: 'Verbose details',
-        }),
-      );
-
-      consoleSpy.mockRestore();
-    });
+    expect(ConsoleLogger.prototype.error).toHaveBeenCalledWith('Failed to bootstrap', 'stack trace', 'Bootstrap');
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'error',
+        message: 'Failed to bootstrap',
+        context: 'Bootstrap',
+      }),
+    );
   });
 
-  describe('log entry structure', () => {
-    it('should include a valid ISO timestamp', () => {
-      jest.spyOn(console, 'log').mockImplementation();
+  it('should include a valid ISO timestamp', () => {
+    logger.log('Timestamp test');
 
-      service.log('Timestamp test');
+    const emittedEntry = publisher.publish.mock.calls[0]?.[0];
+    expect(emittedEntry).toBeDefined();
 
-      const emittedEntry = rmqClient.emit.mock.calls[0]?.[1];
-      expect(emittedEntry).toBeDefined();
+    if (!emittedEntry) {
+      return;
+    }
 
-      if (!emittedEntry) {
-        return;
-      }
-
-      expect(emittedEntry.timestamp).toBeDefined();
-      expect(new Date(emittedEntry.timestamp).toISOString()).toBe(emittedEntry.timestamp);
-
-      jest.restoreAllMocks();
-    });
+    expect(new Date(emittedEntry.timestamp).toISOString()).toBe(emittedEntry.timestamp);
   });
 });

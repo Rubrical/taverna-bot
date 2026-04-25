@@ -104,7 +104,7 @@ export class LogEntry {
 ### DDD Layers (per module)
 
 ```
-modules/<module-name>/
+/<module-name>/
 ├── domain/           # Pure business logic, no framework dependencies
 │   ├── interfaces/   # Contracts, value objects
 │   ├── schemas/      # Mongoose schemas (domain models)
@@ -140,13 +140,11 @@ modules/<module-name>/
 ```
 test/
 ├── unit/          # Fast, isolated tests (mocked dependencies)
-│   └── modules/
-│       └── <module>/
-│           └── <file>.spec.ts
+│   └── <module>/
+│      └── <file>.spec.ts
 ├── integration/   # Tests with real(ish) dependencies (e.g., in-memory DB)
-│   └── modules/
-│       └── <module>/
-│           └── <file>.spec.ts
+│   └── <module>/
+│       └── <file>.spec.ts
 ```
 
 ### Conventions

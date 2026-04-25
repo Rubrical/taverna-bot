@@ -1,61 +1,151 @@
-import { Inject, Injectable, LoggerService } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { ConsoleLogger, Injectable } from '@nestjs/common';
 
-import { RABBITMQ_SERVICE } from '../../../common/constants/injection-tokens.js';
-import { SYSTEM_LOGS_QUEUE } from '../../../common/constants/queue-names.js';
 import type { LogLevel } from '../../../common/types';
-import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
+import type { LogMetadata } from '../domain/interfaces/log-entry.interface.js';
+import { LogPublisher } from './log-publisher.service.js';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class CustomLoggerService implements LoggerService {
+export class TavernaLogger extends ConsoleLogger {
+  private readonly AppContext: string;
+
   constructor(
-    @Inject(RABBITMQ_SERVICE)
-    private readonly rmqClient: ClientProxy,
-  ) {}
-
-  log(message: string, context?: string): void {
-    this.printAndShip('log', message, context);
+    private readonly publisher: LogPublisher,
+    private readonly config: ConfigService,
+  ) {
+    const appContext = config.get<string>('APPLICATION_NAME', 'Taverna Bot');
+    super({ prefix: appContext });
+    this.AppContext = appContext;
   }
 
-  error(message: string, trace?: string, context?: string): void {
-    this.printAndShip('error', message, context, { trace });
+  override log(message: unknown, contextOrMetadata?: string | LogMetadata): void {
+    const { context, metadata } = this.resolveContextAndMetadata(contextOrMetadata);
+
+    super.log(message, context);
+    this.publish('log', message, context, metadata);
   }
 
-  warn(message: string, context?: string): void {
-    this.printAndShip('warn', message, context);
+  override warn(message: unknown, contextOrMetadata?: string | LogMetadata): void {
+    const { context, metadata } = this.resolveContextAndMetadata(contextOrMetadata);
+
+    super.warn(message, context);
+    this.publish('warn', message, context, metadata);
   }
 
-  debug(message: string, context?: string): void {
-    this.printAndShip('debug', message, context);
+  override debug(message: unknown, contextOrMetadata?: string | LogMetadata): void {
+    const { context, metadata } = this.resolveContextAndMetadata(contextOrMetadata);
+
+    super.debug(message, context);
+    this.publish('debug', message, context, metadata);
   }
 
-  verbose(message: string, context?: string): void {
-    this.printAndShip('verbose', message, context);
+  override verbose(message: unknown, contextOrMetadata?: string | LogMetadata): void {
+    const { context, metadata } = this.resolveContextAndMetadata(contextOrMetadata);
+
+    super.verbose(message, context);
+    this.publish('verbose', message, context, metadata);
   }
 
-  private printAndShip(level: LogLevel, message: string, context?: string, metadata?: Record<string, unknown>): void {
-    const timestamp = new Date().toISOString();
-    const prefix = context ? `[${context}]` : '';
-    const tag = level.toUpperCase().padEnd(7);
+  override error(
+    message: unknown,
+    errorOrContextOrMetadata?: Error | string | LogMetadata,
+    contextOrMetadata?: string | LogMetadata,
+  ): void {
+    const { context, metadata, stack } = this.resolveErrorParams(errorOrContextOrMetadata, contextOrMetadata);
 
-    // Console output
-    const formatted = `${timestamp} ${tag} ${prefix} ${message}`;
-    this.writeToConsole(level, formatted);
-
-    // Ship to RabbitMQ (fire-and-forget)
-    const entry: LogEntry = { level, message, context, timestamp, metadata };
-    this.rmqClient.emit(SYSTEM_LOGS_QUEUE, entry);
+    super.error(message, stack, context);
+    this.publish('error', message, context, metadata);
   }
 
-  private writeToConsole(level: LogLevel, formatted: string): void {
-    const writers: Record<LogLevel, (msg: string) => void> = {
-      log: (msg) => console.log(`\x1b[32m${msg}\x1b[0m`),
-      error: (msg) => console.error(`\x1b[31m${msg}\x1b[0m`),
-      warn: (msg) => console.warn(`\x1b[33m${msg}\x1b[0m`),
-      debug: (msg) => console.debug(`\x1b[36m${msg}\x1b[0m`),
-      verbose: (msg) => console.log(`\x1b[35m${msg}\x1b[0m`),
+  private publish(level: LogLevel, message: unknown, context?: string, metadata?: LogMetadata): void {
+    this.publisher.publish({
+      level,
+      message: this.formatMessageForTransport(message),
+      context,
+      timestamp: new Date().toISOString(),
+      metadata,
+    });
+  }
+
+  private resolveContextAndMetadata(value?: string | LogMetadata): {
+    readonly context?: string;
+    readonly metadata?: LogMetadata;
+  } {
+    if (!value) {
+      return { context: this.context };
+    }
+
+    if (typeof value === 'string') {
+      return { context: value };
+    }
+
+    return {
+      context: this.context,
+      metadata: value,
     };
+  }
 
-    writers[level](formatted);
+  private resolveErrorParams(
+    errorOrContextOrMetadata?: Error | string | LogMetadata,
+    contextOrMetadata?: string | LogMetadata,
+  ): {
+    readonly context?: string;
+    readonly metadata?: LogMetadata;
+    readonly stack?: string;
+  } {
+    const metadata = this.isMetadata(contextOrMetadata) ? contextOrMetadata : undefined;
+    const context = typeof contextOrMetadata === 'string' ? contextOrMetadata : this.context;
+
+    if (errorOrContextOrMetadata instanceof Error) {
+      return {
+        context,
+        stack: errorOrContextOrMetadata.stack,
+        metadata: {
+          ...metadata,
+          error: {
+            name: errorOrContextOrMetadata.name,
+            message: errorOrContextOrMetadata.message,
+            stack: errorOrContextOrMetadata.stack,
+            cause: errorOrContextOrMetadata.cause,
+          },
+        },
+      };
+    }
+
+    if (typeof errorOrContextOrMetadata === 'string') {
+      return {
+        context: typeof contextOrMetadata === 'string' ? contextOrMetadata : this.context,
+        stack: errorOrContextOrMetadata,
+        metadata,
+      };
+    }
+
+    return {
+      context,
+      metadata: {
+        ...errorOrContextOrMetadata,
+        ...metadata,
+      },
+    };
+  }
+
+  private isMetadata(value: unknown): value is LogMetadata {
+    return !!value && typeof value === 'object' && !(value instanceof Error);
+  }
+
+  private formatMessageForTransport(message: unknown): string {
+    if (typeof message === 'string') {
+      return message;
+    }
+
+    if (message instanceof Error) {
+      return message.message;
+    }
+
+    try {
+      return JSON.stringify(message);
+    } catch {
+      return String(message);
+    }
   }
 }

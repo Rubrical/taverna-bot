@@ -1,10 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 
-import { CustomLoggerService } from './infrastructure/logger.service.js';
+import { LogPublisher } from './infrastructure/log-publisher.service.js';
+import { TavernaLogger } from './infrastructure/logger.service.js';
 
 @Global()
 @Module({
-  providers: [CustomLoggerService],
-  exports: [CustomLoggerService],
+  providers: [LogPublisher, TavernaLogger],
+  exports: [TavernaLogger],
 })
 export class LoggerModule {}
