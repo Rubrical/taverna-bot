@@ -1,9 +1,9 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 
-import { QUEUES } from '../../../queues/queue-names.js';
-import type { LogEntry } from '../../logger/domain/interfaces/log-entry.interface.js';
-import { LogProcessorRepository } from './log-processor.repository.js';
+import { QUEUES } from '../../../queues/queue-names';
+import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface';
+import { LogProcessorRepository } from './log-processor.repository';
 
 @Controller()
 export class LogProcessorController {

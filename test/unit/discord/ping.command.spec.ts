@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { SlashCommandContext } from 'necord';
 
-import { PingCommand } from '../../../../src/discord/commands/ping.command';
+import { PingCommand } from '../../../src/discord/commands/ping.command';
 
 interface ReplyPayload {
   readonly content: string;

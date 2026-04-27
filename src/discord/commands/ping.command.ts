@@ -3,6 +3,11 @@ import { Context, SlashCommand, type SlashCommandContext } from 'necord';
 
 @Injectable()
 export class PingCommand {
+
+
+  constructor() {
+  }
+
   @SlashCommand({
     name: 'ping',
     description: 'Replies with pong! Used to check if the bot is alive.',

@@ -2,12 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 import { AppModule } from './app.module.js';
-import { TavernaLogger } from './modules/logger/infrastructure/logger.service.js';
+import { TavernaLogger } from './logger/infrastructure/taverna-logger.service';
 import { QUEUES } from './queues/queue-names.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule);
-  const logger = app.get(TavernaLogger);
+  const logger = await app.resolve(TavernaLogger);
   logger.setContext('Bootstrap');
 
   // Connect RabbitMQ microservice to consume the system_logs queues
@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // Use custom logger across the application
-  rmqMicroservice.useLogger(app.get(TavernaLogger));
+  rmqMicroservice.useLogger(await app.resolve(TavernaLogger));
   await rmqMicroservice.listen();
 
   logger.log('Taverna Bot is running!');

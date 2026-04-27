@@ -15,7 +15,7 @@ services:
       REDIS_PORT: '6379'
     volumes:
       - .:/usr/src/app:Z
-      - app-node-modules:/usr/src/app/node_modules
+      - app-node-logs:/usr/src/app/node_modules
     depends_on:
       redis:
         condition: service_healthy

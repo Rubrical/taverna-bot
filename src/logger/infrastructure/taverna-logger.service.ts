@@ -1,14 +1,13 @@
-import { ConsoleLogger, Injectable } from '@nestjs/common';
+import { ConsoleLogger, Injectable, Scope } from '@nestjs/common';
 
-import type { LogLevel } from '../../../common/types';
-import type { LogMetadata } from '../domain/interfaces/log-entry.interface.js';
-import { LogPublisher } from './log-publisher.service.js';
+import type { LogLevel } from '../../common/types';
+import type { LogMetadata } from '../domain/interfaces/log-entry.interface';
+import { LogPublisher } from './log-publisher.service';
 import { ConfigService } from '@nestjs/config';
 
-@Injectable()
+@Injectable({ scope: Scope.TRANSIENT })
 export class TavernaLogger extends ConsoleLogger {
   private readonly AppContext: string;
-
   constructor(
     private readonly publisher: LogPublisher,
     private readonly config: ConfigService,

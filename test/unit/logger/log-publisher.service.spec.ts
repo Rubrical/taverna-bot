@@ -3,9 +3,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { ClientProxy } from '@nestjs/microservices';
 import { of, throwError } from 'rxjs';
 
-import { QUEUES } from '../../../../src/queues/queue-names.js';
-import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
-import { LogPublisher } from '../../../../src/modules/logger/infrastructure/log-publisher.service';
+import { QUEUES } from '../../../src/queues/queue-names';
+import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface';
+import { LogPublisher } from '../../../src/logger/infrastructure/log-publisher.service';
 
 type ClientProxyMock = {
   emit: jest.Mock;

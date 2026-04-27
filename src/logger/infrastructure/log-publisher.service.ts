@@ -2,8 +2,8 @@ import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, EMPTY } from 'rxjs';
 
-import { QUEUES } from '../../../queues/queue-names.js';
-import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
+import { QUEUES } from '../../queues/queue-names';
+import type { LogEntry } from '../domain/interfaces/log-entry.interface';
 
 @Injectable()
 export class LogPublisher {

@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { LogProcessorController } from '../../../../src/modules/log-processor/infrastructure/log-processor.controller';
-import { LogProcessorRepository } from '../../../../src/modules/log-processor/infrastructure/log-processor.repository';
-import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
+import { LogProcessorController } from '../../../src/workers/log-processor/infrastructure/log-processor.controller';
+import { LogProcessorRepository } from '../../../src/workers/log-processor/infrastructure/log-processor.repository';
+import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface';
 
 type LogProcessorRepositoryMock = {
   save: jest.Mock<Promise<void>, [LogEntry]>;

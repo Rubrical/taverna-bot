@@ -2,9 +2,9 @@ import { ConsoleLogger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { TavernaLogger } from '../../../../src/modules/logger/infrastructure/logger.service';
-import { LogPublisher } from '../../../../src/modules/logger/infrastructure/log-publisher.service';
-import type { LogEntry } from '../../../../src/modules/logger/domain/interfaces/log-entry.interface';
+import { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
+import { LogPublisher } from '../../../src/logger/infrastructure/log-publisher.service';
+import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface';
 
 type LogPublisherMock = {
   publish: jest.Mock<void, [LogEntry]>;
@@ -50,7 +50,7 @@ describe('TavernaLogger', () => {
       ],
     }).compile();
 
-    logger = module.get<TavernaLogger>(TavernaLogger);
+    logger = await module.resolve<TavernaLogger>(TavernaLogger);
   });
 
   afterEach(() => {
