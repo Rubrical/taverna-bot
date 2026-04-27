@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
 
-@Module({})
+import { PingCommand } from './ping.command.js';
+
+@Module({
+  providers: [PingCommand],
+})
 export class CommandsModule {}

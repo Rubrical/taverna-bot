@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface';
-import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.schema';
+import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
+import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.schema.js';
 
 @Injectable()
 export class LogProcessorRepository {

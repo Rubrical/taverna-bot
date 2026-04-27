@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
-import { OnReady } from './on-ready';
+
+import { OnReady } from './on-ready.js';
 
 @Module({
   imports: [],
-  exports: [OnReady],
+  providers: [OnReady],
 })
 export class EventsModule {}

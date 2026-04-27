@@ -1,9 +1,9 @@
 import { ConsoleLogger, Injectable, Scope } from '@nestjs/common';
-
-import type { LogLevel } from '../../common/types';
-import type { LogMetadata } from '../domain/interfaces/log-entry.interface';
-import { LogPublisher } from './log-publisher.service';
 import { ConfigService } from '@nestjs/config';
+
+import type { LogLevel } from '../../common/types/index.js';
+import type { LogMetadata } from '../domain/interfaces/log-entry.interface.js';
+import { LogPublisher } from './log-publisher.service.js';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class TavernaLogger extends ConsoleLogger {

@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NecordModule } from 'necord';
 import { IntentsBitField } from 'discord.js';
 
-import { CommandsModule } from './commands/commands.module';
-import { EventsModule } from './events/events.module';
+import { CommandsModule } from './commands/commands.module.js';
+import { EventsModule } from './events/events.module.js';
 
 @Module({
   imports: [
@@ -27,7 +27,6 @@ import { EventsModule } from './events/events.module';
         development: config.get<string>('DEV_GUILD_ID') ? [config.getOrThrow<string>('DEV_GUILD_ID')] : undefined,
       }),
     }),
-    EventsModule,
   ],
   providers: [],
 })
