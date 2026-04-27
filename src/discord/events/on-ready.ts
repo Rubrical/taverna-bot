@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ActivityType } from 'discord.js';
 import { Context, Once, type ContextOf } from 'necord';
 
-import { TavernaLogger } from '../../../logger/infrastructure/taverna-logger.service.js';
+import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service';
 
 @Injectable()
 export class OnReady {

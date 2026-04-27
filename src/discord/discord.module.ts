@@ -3,10 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { NecordModule } from 'necord';
 import { IntentsBitField } from 'discord.js';
 
-import { PingCommand } from './commands/ping.command';
+import { CommandsModule } from './commands/commands.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
+    CommandsModule,
+    EventsModule,
     NecordModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -21,12 +24,11 @@ import { PingCommand } from './commands/ping.command';
           IntentsBitField.Flags.DirectMessages,
           IntentsBitField.Flags.DirectMessageReactions,
         ],
-        development: config.get<string>('DEV_GUILD_ID')
-          ? [config.getOrThrow<string>('DEV_GUILD_ID')]
-          : undefined,
+        development: config.get<string>('DEV_GUILD_ID') ? [config.getOrThrow<string>('DEV_GUILD_ID')] : undefined,
       }),
     }),
+    EventsModule,
   ],
-  providers: [PingCommand],
+  providers: [],
 })
 export class DiscordModule {}
