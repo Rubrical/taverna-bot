@@ -7,7 +7,8 @@ import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
 
 @Injectable()
 export class LogPublisher {
-  private readonly fallbackLogger = new ConsoleLogger(LogPublisher.name);
+  // Doing this to avoid infinite logging
+  private readonly _fallbackLogger = new ConsoleLogger(LogPublisher.name);
 
   constructor(@Inject(QUEUES.SYSTEM_LOGS) private readonly client: ClientProxy) {}
 
@@ -29,6 +30,6 @@ export class LogPublisher {
 
   private reportFailure(error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
-    this.fallbackLogger.warn(`Failed to publish log entry to RabbitMQ: ${message}`);
+    this._fallbackLogger.warn(`Failed to publish log entry to RabbitMQ: ${message}`);
   }
 }
