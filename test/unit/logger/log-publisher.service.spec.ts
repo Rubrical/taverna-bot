@@ -1,4 +1,5 @@
 import { ConsoleLogger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { ClientProxy } from '@nestjs/microservices';
 import { of, throwError } from 'rxjs';
@@ -9,6 +10,10 @@ import { LogPublisher } from '../../../src/logger/infrastructure/log-publisher.s
 
 type ClientProxyMock = {
   emit: jest.Mock;
+};
+
+type ConfigServiceMock = {
+  get: jest.Mock<string, [string, string]>;
 };
 
 function createLogEntry(): LogEntry {
@@ -23,11 +28,15 @@ function createLogEntry(): LogEntry {
 describe('LogPublisher', () => {
   let publisher: LogPublisher;
   let client: ClientProxyMock;
+  let config: ConfigServiceMock;
   let consoleWarnSpy: jest.SpiedFunction<typeof ConsoleLogger.prototype.warn>;
 
   beforeEach(async () => {
     client = {
       emit: jest.fn().mockReturnValue(of(undefined)),
+    };
+    config = {
+      get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),
     };
 
     consoleWarnSpy = jest.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation();
@@ -38,6 +47,10 @@ describe('LogPublisher', () => {
         {
           provide: QUEUES.SYSTEM_LOGS,
           useValue: client as Partial<ClientProxy>,
+        },
+        {
+          provide: ConfigService,
+          useValue: config,
         },
       ],
     }).compile();
@@ -54,6 +67,7 @@ describe('LogPublisher', () => {
 
     publisher.publish(entry);
 
+    expect(config.get).toHaveBeenCalledWith('APPLICATION_NAME', 'Taverna Bot');
     expect(client.emit).toHaveBeenCalledWith(QUEUES.SYSTEM_LOGS, entry);
   });
 

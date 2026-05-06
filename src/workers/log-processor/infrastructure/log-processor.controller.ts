@@ -1,16 +1,24 @@
 import { ConsoleLogger, Controller } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
-
-import { QUEUES } from '../../../queues/queue-names.js';
-import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
-import { LogProcessorRepository } from './log-processor.repository.js';
 import { Channel, Message } from 'amqplib';
+
+import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
+import { QUEUES } from '../../../queues/queue-names.js';
+import { LogProcessorRepository } from './log-processor.repository.js';
 
 @Controller()
 export class LogProcessorController {
   // Doing this to avoid infinite logging
-  private readonly _fallbackLogger = new ConsoleLogger(LogProcessorController.name);
-  constructor(private readonly repository: LogProcessorRepository) {}
+  private readonly _fallbackLogger: ConsoleLogger;
+
+  constructor(
+    private readonly repository: LogProcessorRepository,
+    config: ConfigService,
+  ) {
+    const appContext = config.get<string>('APPLICATION_NAME', 'Taverna Bot');
+    this._fallbackLogger = new ConsoleLogger(LogProcessorController.name, { prefix: appContext });
+  }
 
   @EventPattern(QUEUES.SYSTEM_LOGS)
   async handleSystemLog(@Payload() entry: LogEntry, @Ctx() context: RmqContext): Promise<void> {

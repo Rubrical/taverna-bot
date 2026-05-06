@@ -7,7 +7,7 @@ import { TavernaLogger } from './logger/infrastructure/taverna-logger.service.js
 import { queueNames } from './queues/queue-clients.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
   const logger = await app.resolve(TavernaLogger);
 

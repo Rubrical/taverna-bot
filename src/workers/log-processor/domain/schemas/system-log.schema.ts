@@ -5,7 +5,7 @@ import type { LogLevel } from '../../../../common/types/index.js';
 
 export type SystemLogDocument = HydratedDocument<SystemLog>;
 
-@Schema({ timestamps: true, collection: 'system_logs' })
+@Schema({ collection: 'system_logs' })
 export class SystemLog {
   @Prop({ required: true, type: String, enum: ['log', 'error', 'warn', 'debug', 'verbose'] })
   level: LogLevel;

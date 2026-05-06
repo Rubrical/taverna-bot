@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { RmqContext } from '@nestjs/microservices';
 import type { Channel, Message } from 'amqplib';
@@ -8,6 +9,10 @@ import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.i
 
 type LogProcessorRepositoryMock = {
   save: jest.Mock<Promise<void>, [LogEntry]>;
+};
+
+type ConfigServiceMock = {
+  get: jest.Mock<string, [string, string]>;
 };
 
 type RmqChannelMock = {
@@ -70,11 +75,15 @@ function createRmqContextMock(): RmqContextMock {
 describe('LogProcessorController', () => {
   let controller: LogProcessorController;
   let repository: LogProcessorRepositoryMock;
+  let config: ConfigServiceMock;
   let rmqContext: RmqContextMock;
 
   beforeEach(async () => {
     const mockRepository: LogProcessorRepositoryMock = {
       save: createSaveMock(),
+    };
+    config = {
+      get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -83,6 +92,10 @@ describe('LogProcessorController', () => {
         {
           provide: LogProcessorRepository,
           useValue: mockRepository,
+        },
+        {
+          provide: ConfigService,
+          useValue: config,
         },
       ],
     }).compile();
@@ -94,6 +107,7 @@ describe('LogProcessorController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+    expect(config.get).toHaveBeenCalledWith('APPLICATION_NAME', 'Taverna Bot');
   });
 
   describe('handleSystemLog()', () => {
