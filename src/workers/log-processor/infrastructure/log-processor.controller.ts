@@ -1,11 +1,14 @@
-import { ConsoleLogger, Controller } from '@nestjs/common';
+import { ConsoleLogger, Controller, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { Channel, Message } from 'amqplib';
 
 import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
 import { QUEUES } from '../../../queues/queue-names.js';
-import { LogProcessorRepository } from './log-processor.repository.js';
+import {
+  LOG_PROCESSOR_REPOSITORY,
+  type LogProcessorRepositoryPort,
+} from '../domain/interfaces/log-processor-repository.interface.js';
 
 @Controller()
 export class LogProcessorController {
@@ -13,7 +16,8 @@ export class LogProcessorController {
   private readonly _fallbackLogger: ConsoleLogger;
 
   constructor(
-    private readonly repository: LogProcessorRepository,
+    @Inject(LOG_PROCESSOR_REPOSITORY)
+    private readonly repository: LogProcessorRepositoryPort,
     config: ConfigService,
   ) {
     const appContext = config.get<string>('APPLICATION_NAME', 'Taverna Bot');

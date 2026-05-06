@@ -3,13 +3,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { RmqContext } from '@nestjs/microservices';
 import type { Channel, Message } from 'amqplib';
 
-import { LogProcessorController } from '../../../src/workers/log-processor/infrastructure/log-processor.controller';
-import { LogProcessorRepository } from '../../../src/workers/log-processor/infrastructure/log-processor.repository';
-import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface';
+import { createRepositoryMock, type RepositoryMock } from '../../helpers/repository-mock.helper.js';
+import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface.js';
+import {
+  LOG_PROCESSOR_REPOSITORY,
+  type LogProcessorRepositoryPort,
+} from '../../../src/workers/log-processor/domain/interfaces/log-processor-repository.interface.js';
+import { LogProcessorController } from '../../../src/workers/log-processor/infrastructure/log-processor.controller.js';
 
-type LogProcessorRepositoryMock = {
-  save: jest.Mock<Promise<void>, [LogEntry]>;
-};
+type LogProcessorRepositoryMock = RepositoryMock<LogProcessorRepositoryPort>;
 
 type ConfigServiceMock = {
   get: jest.Mock<string, [string, string]>;
@@ -27,7 +29,25 @@ type RmqContextMock = {
 };
 
 function createSaveMock(): LogProcessorRepositoryMock['save'] {
-  return jest.fn<Promise<void>, [LogEntry]>().mockResolvedValue(undefined);
+  const savedDocument = undefined as Awaited<ReturnType<LogProcessorRepositoryPort['save']>>;
+
+  return jest
+    .fn<ReturnType<LogProcessorRepositoryPort['save']>, Parameters<LogProcessorRepositoryPort['save']>>()
+    .mockResolvedValue(savedDocument);
+}
+
+function createFindByIdMock(): LogProcessorRepositoryMock['findById'] {
+  return jest.fn<
+    ReturnType<LogProcessorRepositoryPort['findById']>,
+    Parameters<LogProcessorRepositoryPort['findById']>
+  >();
+}
+
+function createFindManyMock(): LogProcessorRepositoryMock['findMany'] {
+  return jest.fn<
+    ReturnType<LogProcessorRepositoryPort['findMany']>,
+    Parameters<LogProcessorRepositoryPort['findMany']>
+  >();
 }
 
 function createRmqContextMock(): RmqContextMock {
@@ -79,9 +99,11 @@ describe('LogProcessorController', () => {
   let rmqContext: RmqContextMock;
 
   beforeEach(async () => {
-    const mockRepository: LogProcessorRepositoryMock = {
+    const mockRepository = createRepositoryMock<LogProcessorRepositoryPort>({
       save: createSaveMock(),
-    };
+      findById: createFindByIdMock(),
+      findMany: createFindManyMock(),
+    });
     config = {
       get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),
     };
@@ -90,7 +112,7 @@ describe('LogProcessorController', () => {
       controllers: [LogProcessorController],
       providers: [
         {
-          provide: LogProcessorRepository,
+          provide: LOG_PROCESSOR_REPOSITORY,
           useValue: mockRepository,
         },
         {
@@ -101,7 +123,7 @@ describe('LogProcessorController', () => {
     }).compile();
 
     controller = module.get<LogProcessorController>(LogProcessorController);
-    repository = module.get<LogProcessorRepositoryMock>(LogProcessorRepository);
+    repository = module.get<LogProcessorRepositoryMock>(LOG_PROCESSOR_REPOSITORY);
     rmqContext = createRmqContextMock();
   });
 
