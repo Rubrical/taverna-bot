@@ -19,7 +19,7 @@ export class OnReady {
 
       client.user.setStatus('online');
       client.user.setPresence({
-        activities: [{ type: ActivityType.Listening, name: 'Escutando suas sessões de RPG' }],
+        activities: [{ type: ActivityType.Listening, name: 'Suas sessões de RPG' }],
       });
 
       this._logger.log(`Bot is up on ${readytime}! Name: ${botName} Id: ${botId}`);
