@@ -1,6 +1,6 @@
 services:
   redis:
-    image: docker.io/library/redis:7-alpine
+    image: docker.io/valkey/valkey:9-alpine
     container_name: taverna-redis
     restart: unless-stopped
     ports:
