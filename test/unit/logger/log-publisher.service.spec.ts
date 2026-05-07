@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { ClientProxy } from '@nestjs/microservices';
 import { of, throwError } from 'rxjs';
 
-import { QUEUES } from '../../../src/queues/queue-names';
+import { QUEUES } from '../../../src/infrastructure/queues/queue-names';
 import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface';
 import { LogPublisher } from '../../../src/logger/infrastructure/log-publisher.service';
 

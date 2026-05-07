@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { catchError, EMPTY } from 'rxjs';
 
-import { QUEUES } from '../../queues/queue-names.js';
+import { QUEUES } from '../../infrastructure/queues/queue-names.js';
 import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
 
 @Injectable()

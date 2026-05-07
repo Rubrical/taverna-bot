@@ -4,7 +4,7 @@ import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { Channel, Message } from 'amqplib';
 
 import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
-import { QUEUES } from '../../../queues/queue-names.js';
+import { QUEUES } from '../../../infrastructure/queues/queue-names.js';
 import {
   LOG_PROCESSOR_REPOSITORY,
   type LogProcessorRepositoryPort,

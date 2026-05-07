@@ -5,7 +5,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module.js';
 import { FileConsoleTransport } from './logger/infrastructure/file-console.transport.js';
 import { TavernaLogger } from './logger/infrastructure/taverna-logger.service.js';
-import { queueNames } from './queues/queue-clients.js';
+import { queueNames } from './infrastructure/queues/queue-clients.js';
 
 const fileConsoleTransport = new FileConsoleTransport({
   directory: process.env.LOG_FILE_DIRECTORY,
