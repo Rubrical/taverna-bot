@@ -128,5 +128,42 @@ describe('BotStatusInfoService', () => {
       expect(logger.warn).toHaveBeenCalledWith('Last commit hash was not available');
       expect(logger.error).toHaveBeenCalledWith('Exec error', error);
     });
+
+    it('should include discord status when it is available', async () => {
+      const discordBotStatus = {
+        clientStatus: 'online',
+        clientReadyAt: new Date('2026-05-07T12:01:00.000Z'),
+        discordId: 'bot-1',
+        discordName: 'Taverna',
+        guilds: ['Guild One', 'Guild Two'],
+      };
+
+      await service.updateDiscordBotStatus(discordBotStatus);
+
+      const status = await service.getBasicApplicationInfo();
+
+      expect(status.discordBotStatus).toEqual(discordBotStatus);
+    });
+
+    it('should build complete status when discord status is updated before basic info is requested', async () => {
+      const discordBotStatus = {
+        clientStatus: 'online',
+        clientReadyAt: new Date('2026-05-07T12:01:00.000Z'),
+        discordId: 'bot-1',
+        discordName: 'Taverna',
+        guilds: ['Guild One'],
+      };
+
+      const status = await service.updateDiscordBotStatus(discordBotStatus);
+
+      expect(status).toEqual(
+        expect.objectContaining({
+          name: 'Taverna Bot',
+          version: '1.2.3',
+          lastCommitHash: 'abc1234',
+          discordBotStatus: discordBotStatus,
+        }),
+      );
+    });
   });
 });

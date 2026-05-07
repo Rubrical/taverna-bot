@@ -5,7 +5,7 @@ import { IntentsBitField } from 'discord.js';
 
 import { CommandsModule } from './commands/commands.module.js';
 import { EventsModule } from './events/events.module.js';
-import { AdminModule } from '../admin/admin.module';
+import { AdminModule } from '../admin/admin.module.js';
 
 @Module({
   imports: [

@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service';
-import { ConfigService } from '@nestjs/config';
-import { BotStatus } from '../domain/bot-status-info';
+
+import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
+import type { BotStatus, DiscordBotStatus } from '../domain/bot-status-info.js';
 
 @Injectable()
 export class BotStatusInfoService {
   private readonly startupTime = new Date();
+  private discordBotStatus?: DiscordBotStatus;
+  private botInfo?: BotStatus;
 
   constructor(
     private readonly _logger: TavernaLogger,
@@ -17,6 +20,22 @@ export class BotStatusInfoService {
   }
 
   public async getBasicApplicationInfo(): Promise<BotStatus> {
+    const info = await this.buildBasicApplicationInfo();
+    this.botInfo = this.mergeDiscordBotStatus(info);
+
+    return this.botInfo;
+  }
+
+  public async updateDiscordBotStatus(discordBotStatus: DiscordBotStatus): Promise<BotStatus> {
+    this.discordBotStatus = discordBotStatus;
+
+    const info = this.botInfo ?? (await this.buildBasicApplicationInfo());
+    this.botInfo = this.mergeDiscordBotStatus(info);
+
+    return this.botInfo;
+  }
+
+  private async buildBasicApplicationInfo(): Promise<BotStatus> {
     const commitHash = await this.getCommitHash();
     const botName = this._configService.getOrThrow<string>('APPLICATION_NAME');
     const ownerId = this._configService.getOrThrow<string>('OWNER_ID');
@@ -28,7 +47,7 @@ export class BotStatusInfoService {
     const pid = process.pid;
     const ppid = process.ppid;
 
-    return {
+    const info: BotStatus = {
       lastCommitHash: commitHash,
       memoryUsage: memoryUsage,
       memoryHeapUsage: memoryHeapUsage,
@@ -41,6 +60,20 @@ export class BotStatusInfoService {
       name: botName,
       ownerId: ownerId,
       ownerName: ownerName,
+      ...(this.discordBotStatus ? { discordBotStatus: this.discordBotStatus } : {}),
+    };
+
+    return info;
+  }
+
+  private mergeDiscordBotStatus(botStatus: BotStatus): BotStatus {
+    if (!this.discordBotStatus) {
+      return botStatus;
+    }
+
+    return {
+      ...botStatus,
+      discordBotStatus: this.discordBotStatus,
     };
   }
 
