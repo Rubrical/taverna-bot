@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { SlashCommandContext } from 'necord';
 
 import { PingCommand } from '../../../src/discord/commands/ping.command';
+import { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
 
 interface ReplyPayload {
   readonly content: string;
@@ -36,7 +37,17 @@ describe('PingCommand', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PingCommand],
+      providers: [
+        PingCommand,
+        {
+          provide: TavernaLogger,
+          useValue: {
+            setContext: jest.fn(),
+            log: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     command = module.get<PingCommand>(PingCommand);

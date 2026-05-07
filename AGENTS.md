@@ -198,3 +198,14 @@ refactor/<description>
 - **Never** hardcode secrets or connection strings.
 - Use `.env.example` as the reference for required vars.
 - Use `config.getOrThrow<T>()` for required variables, `config.get<T>(key, default)` for optional ones.
+
+---
+
+## 8. External Services usage
+
+### Logging layer
+
+- When the log seems needed (and it should always be needed) this project convention is to use the class `TavernaLogger`.
+- Log everything that may be queryable ,for later analysis and reports, or can produce a side effect such as an error.
+- File logs are saved by default on the `logs` folder.
+- All `TavernaLogger` logs are sent to *system_logs* collection on the database.

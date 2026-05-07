@@ -1,4 +1,10 @@
-import { FileConsoleTransport } from '../../../src/logger/infrastructure/file-console.transport.js';
+import path from 'node:path';
+import type { mkdir } from 'node:fs/promises';
+
+import {
+  FileConsoleTransport,
+  type FileConsoleTransportOptions,
+} from '../../../src/logger/infrastructure/file-console.transport.js';
 
 type WriteCallback = (error?: Error | null) => void;
 
@@ -14,7 +20,7 @@ type WritableTargetMock = {
 
 type FileSystemMock = {
   appendFile: jest.Mock<Promise<void>, [string, string, BufferEncoding]>;
-  mkdir: jest.Mock<Promise<void>, [string, { recursive: boolean }]>;
+  mkdir: jest.Mock<Promise<string | undefined>, [Parameters<typeof mkdir>[0], Parameters<typeof mkdir>[1]?]>;
 };
 
 function createWritableTarget(): WritableTargetMock {
@@ -26,8 +32,14 @@ function createWritableTarget(): WritableTargetMock {
 function createFileSystemMock(): FileSystemMock {
   return {
     appendFile: jest.fn<Promise<void>, [string, string, BufferEncoding]>().mockResolvedValue(undefined),
-    mkdir: jest.fn<Promise<void>, [string, { recursive: boolean }]>().mockResolvedValue(undefined),
+    mkdir: jest
+      .fn<Promise<string | undefined>, [Parameters<typeof mkdir>[0], Parameters<typeof mkdir>[1]?]>()
+      .mockResolvedValue(undefined),
   };
+}
+
+function asFileSystemAdapter(fileSystem: FileSystemMock): NonNullable<FileConsoleTransportOptions['fileSystem']> {
+  return fileSystem as unknown as NonNullable<FileConsoleTransportOptions['fileSystem']>;
 }
 
 describe('FileConsoleTransport', () => {
@@ -49,7 +61,7 @@ describe('FileConsoleTransport', () => {
     const transport = new FileConsoleTransport({
       cwd: '/home/lipian/projetos/taverna-bot',
       directory: 'logs',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,
@@ -60,9 +72,11 @@ describe('FileConsoleTransport', () => {
     stdout.write('[Taverna Bot] Starting Nest application...\n', 'utf8');
     await transport.stop();
 
-    expect(fileSystem.mkdir).toHaveBeenCalledWith('/home/lipian/projetos/taverna-bot/logs', { recursive: true });
+    expect(fileSystem.mkdir).toHaveBeenCalledWith(path.resolve('/home/lipian/projetos/taverna-bot', 'logs'), {
+      recursive: true,
+    });
     expect(fileSystem.appendFile).toHaveBeenCalledWith(
-      '/home/lipian/projetos/taverna-bot/logs/app-2026-05-06.log',
+      path.resolve('/home/lipian/projetos/taverna-bot', 'logs', 'app-2026-05-06.log'),
       '[Taverna Bot] Starting Nest application...\n',
       'utf8',
     );
@@ -72,7 +86,7 @@ describe('FileConsoleTransport', () => {
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
       directory: 'logs',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,
@@ -84,7 +98,7 @@ describe('FileConsoleTransport', () => {
     await transport.stop();
 
     expect(fileSystem.appendFile).toHaveBeenCalledWith(
-      '/workspace/logs/app-2026-05-06.log',
+      path.resolve('/workspace', 'logs', 'app-2026-05-06.log'),
       '[Taverna Bot] Failed to bootstrap\n',
       'utf8',
     );
@@ -93,7 +107,7 @@ describe('FileConsoleTransport', () => {
   it('should strip ANSI escape codes before writing the file', async () => {
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,
@@ -105,7 +119,7 @@ describe('FileConsoleTransport', () => {
     await transport.stop();
 
     expect(fileSystem.appendFile).toHaveBeenCalledWith(
-      '/workspace/logs/app-2026-05-06.log',
+      path.resolve('/workspace', 'logs', 'app-2026-05-06.log'),
       '[Taverna Bot] Ready\n',
       'utf8',
     );
@@ -115,7 +129,7 @@ describe('FileConsoleTransport', () => {
     const currentDate = { value: '2026-05-06T23:59:59.000Z' };
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date(currentDate.value),
       stderr,
       stdout,
@@ -130,13 +144,13 @@ describe('FileConsoleTransport', () => {
 
     expect(fileSystem.appendFile).toHaveBeenNthCalledWith(
       1,
-      '/workspace/logs/app-2026-05-06.log',
+      path.resolve('/workspace', 'logs', 'app-2026-05-06.log'),
       'first log\n',
       'utf8',
     );
     expect(fileSystem.appendFile).toHaveBeenNthCalledWith(
       2,
-      '/workspace/logs/app-2026-05-07.log',
+      path.resolve('/workspace', 'logs', 'app-2026-05-07.log'),
       'second log\n',
       'utf8',
     );
@@ -147,7 +161,7 @@ describe('FileConsoleTransport', () => {
     const originalStderrWrite = stderr.write;
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,
@@ -165,7 +179,7 @@ describe('FileConsoleTransport', () => {
     const originalStderrWrite = stderr.write;
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,
@@ -188,7 +202,7 @@ describe('FileConsoleTransport', () => {
     const originalStderrWrite = stderr.write;
     const transport = new FileConsoleTransport({
       cwd: '/workspace',
-      fileSystem,
+      fileSystem: asFileSystemAdapter(fileSystem),
       now: () => new Date('2026-05-06T14:24:19.000Z'),
       stderr,
       stdout,

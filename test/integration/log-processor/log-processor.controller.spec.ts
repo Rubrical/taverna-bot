@@ -29,7 +29,7 @@ type RmqContextMock = {
 };
 
 function createSaveMock(): LogProcessorRepositoryMock['save'] {
-  const savedDocument = undefined as Awaited<ReturnType<LogProcessorRepositoryPort['save']>>;
+  const savedDocument = undefined as unknown as Awaited<ReturnType<LogProcessorRepositoryPort['save']>>;
 
   return jest
     .fn<ReturnType<LogProcessorRepositoryPort['save']>, Parameters<LogProcessorRepositoryPort['save']>>()
@@ -83,7 +83,7 @@ function createRmqContextMock(): RmqContextMock {
   const context = {
     getChannelRef: () => channel,
     getMessage: () => message,
-  } as RmqContext;
+  } as unknown as RmqContext;
 
   return {
     channel,

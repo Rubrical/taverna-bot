@@ -49,7 +49,7 @@ describe('LogProcessorRepository', () => {
       context: 'RuntimeHandler',
       timestamp: '2026-05-06T13:00:00.000Z',
       metadata: { userId: 'user-123' },
-    } as SystemLogDocument;
+    } as unknown as SystemLogDocument;
 
     const modelMock = createSystemLogModelMock(document);
     model = modelMock.model;
