@@ -5,11 +5,13 @@ import { IntentsBitField } from 'discord.js';
 
 import { CommandsModule } from './commands/commands.module.js';
 import { EventsModule } from './events/events.module.js';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
     CommandsModule,
     EventsModule,
+    AdminModule,
     NecordModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

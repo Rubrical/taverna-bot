@@ -3,10 +3,14 @@ import { ActivityType } from 'discord.js';
 import { Context, Once, type ContextOf } from 'necord';
 
 import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
+import { BotStatusInfoService } from '../../admin/application/bot-status-info.service';
 
 @Injectable()
 export class OnReady {
-  constructor(private readonly _logger: TavernaLogger) {
+  constructor(
+    private readonly _logger: TavernaLogger,
+    private readonly botStatusService: BotStatusInfoService,
+  ) {
     _logger.setContext(OnReady.name);
   }
 
@@ -25,4 +29,6 @@ export class OnReady {
       this._logger.log(`Bot is up on ${readytime}! Name: ${botName} Id: ${botId}`);
     }
   }
+
+  private
 }
