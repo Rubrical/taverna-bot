@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { KeyvAdapter } from 'cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 
 @Global()
@@ -9,13 +10,17 @@ import { redisStore } from 'cache-manager-redis-yet';
     CacheModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
-        store: await redisStore({
-          socket: {
-            host: config.get<string>('REDIS_HOST', 'localhost'),
-            port: config.get<number>('REDIS_PORT', 6379),
-          },
-          ttl: 60_000,
-        }),
+        stores: [
+          new KeyvAdapter(
+            await redisStore({
+              socket: {
+                host: config.get<string>('REDIS_HOST', 'localhost'),
+                port: config.get<number>('REDIS_PORT', 6379),
+              },
+              ttl: 60_000,
+            }),
+          ),
+        ],
       }),
     }),
   ],
