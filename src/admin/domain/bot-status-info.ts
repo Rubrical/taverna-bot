@@ -2,6 +2,7 @@ export interface BotInfo {
   readonly name: string;
   readonly version: string;
   readonly latency?: number;
+  readonly runningFor?: string;
   readonly ownerId: string;
   readonly ownerName: string;
 }

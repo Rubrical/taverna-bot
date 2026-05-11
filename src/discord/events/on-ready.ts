@@ -5,6 +5,7 @@ import { Context, Once, type ContextOf } from 'necord';
 
 import { BotStatusInfoService } from '../../admin/application/bot-status-info.service.js';
 import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
+import { cacheKeys } from "../../infrastructure/cache/cache-keys.js";
 
 @Injectable()
 export class OnReady {
@@ -42,6 +43,6 @@ export class OnReady {
     });
 
     this._logger.log(`Bot is up on ${readyAt.toISOString()}! Name: ${botName} Id: ${botId}`);
-    await this._cache.set('bot:status', botStatus, 0);
+    await this._cache.set(cacheKeys.bot.status(), botStatus, 0);
   }
 }

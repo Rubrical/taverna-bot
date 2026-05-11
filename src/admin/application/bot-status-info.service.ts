@@ -47,7 +47,7 @@ export class BotStatusInfoService {
     const pid = process.pid;
     const ppid = process.ppid;
 
-    const info: BotStatus = {
+    return {
       lastCommitHash: commitHash,
       memoryUsage: memoryUsage,
       memoryHeapUsage: memoryHeapUsage,
@@ -60,10 +60,8 @@ export class BotStatusInfoService {
       name: botName,
       ownerId: ownerId,
       ownerName: ownerName,
-      ...(this.discordBotStatus ? { discordBotStatus: this.discordBotStatus } : {}),
+      ...(this.discordBotStatus ? {discordBotStatus: this.discordBotStatus} : {}),
     };
-
-    return info;
   }
 
   private mergeDiscordBotStatus(botStatus: BotStatus): BotStatus {
