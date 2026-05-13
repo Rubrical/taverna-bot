@@ -62,7 +62,10 @@ export class BotStatusCommand {
         { name: 'Commit', value: botStatus.lastCommitHash ?? 'Unavailable', inline: true },
         { name: 'Discord status', value: discordStatus?.clientStatus ?? 'Unavailable', inline: true },
         { name: 'Discord ready at', value: readyAt, inline: true },
-        { name: 'Discord bot', value: discordStatus ? `${discordStatus.discordName} (${discordStatus.discordId})` : 'Unavailable' },
+        {
+          name: 'Discord bot',
+          value: discordStatus ? `${discordStatus.discordName} (${discordStatus.discordId})` : 'Unavailable',
+        },
         { name: 'Guilds', value: guilds },
       );
   }

@@ -60,7 +60,7 @@ export class BotStatusInfoService {
       name: botName,
       ownerId: ownerId,
       ownerName: ownerName,
-      ...(this.discordBotStatus ? {discordBotStatus: this.discordBotStatus} : {}),
+      ...(this.discordBotStatus ? { discordBotStatus: this.discordBotStatus } : {}),
     };
   }
 

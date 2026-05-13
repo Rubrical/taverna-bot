@@ -5,7 +5,7 @@ import { Context, Once, type ContextOf } from 'necord';
 
 import { BotStatusInfoService } from '../../admin/application/bot-status-info.service.js';
 import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
-import { cacheKeys } from "../../infrastructure/cache/cache-keys.js";
+import { cacheKeys } from '../../infrastructure/cache/cache-keys.js';
 
 @Injectable()
 export class OnReady {

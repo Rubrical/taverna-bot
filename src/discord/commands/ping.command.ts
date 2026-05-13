@@ -5,13 +5,12 @@ import { CommandLoggingInterceptor } from './interceptors/command-logging-interc
 
 @Injectable()
 export class PingCommand {
-
-  constructor() { }
+  constructor() {}
 
   @SlashCommand({
     name: 'ping',
     description: 'Replies with pong! Used to check if the bot is alive.',
-    guilds: [process.env.DEV_GUILD_ID!]
+    guilds: [process.env.DEV_GUILD_ID!],
   })
   @UseInterceptors(CommandLoggingInterceptor)
   async onPing(@Context() [interaction]: SlashCommandContext): Promise<void> {
