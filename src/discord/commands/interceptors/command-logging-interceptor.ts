@@ -2,17 +2,14 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { Observable, tap } from 'rxjs';
 
+import type { AuditEventPayload } from '../../../logger/domain/interfaces/audit-event-payload.js';
 import { TavernaLogger } from '../../../logger/infrastructure/taverna-logger.service.js';
-import type { LogMetadata } from '../../../logger/domain/interfaces/log-entry.interface.js';
 
-interface CommandLogMetadata extends LogMetadata {
-  readonly command: string;
-  readonly user: {
-    readonly id: string;
-    readonly tag: string;
-  };
-  readonly guildId: string | null;
-  readonly channelId: string | null;
+interface ChatInputCommandInteractionCandidate {
+  readonly isChatInputCommand: () => boolean;
+}
+
+interface CommandAuditEventPayload extends AuditEventPayload {
   readonly durationMs?: number;
 }
 
@@ -30,21 +27,21 @@ export class CommandLoggingInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const metadata = this.createMetadata(interaction);
+    const payload = this.createAuditEventPayload(interaction);
 
-    this.logger.log(`Discord command started: /${interaction.commandName}`, metadata);
+    this.logger.log(`Discord command started: /${interaction.commandName}`, payload);
 
     return next.handle().pipe(
       tap({
         next: () => {
           this.logger.log(`Discord command finished: /${interaction.commandName}`, {
-            ...metadata,
+            ...payload,
             durationMs: Date.now() - startedAt,
           });
         },
         error: (error: unknown) => {
           this.logger.error(`Discord command failed: /${interaction.commandName}`, this.toError(error), {
-            ...metadata,
+            ...payload,
             durationMs: Date.now() - startedAt,
           });
         },
@@ -63,26 +60,38 @@ export class CommandLoggingInterceptor implements NestInterceptor {
   }
 
   private isChatInputCommandInteraction(value: unknown): value is ChatInputCommandInteraction {
-    if (!value || typeof value !== 'object') {
-      return false;
-    }
-
-    if (!('isChatInputCommand' in value) || typeof value.isChatInputCommand !== 'function') {
+    if (!this.hasChatInputCommandPredicate(value)) {
       return false;
     }
 
     return value.isChatInputCommand();
   }
 
-  private createMetadata(interaction: ChatInputCommandInteraction): CommandLogMetadata {
+  private hasChatInputCommandPredicate(value: unknown): value is ChatInputCommandInteractionCandidate {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as { readonly isChatInputCommand?: unknown };
+
+    return typeof candidate.isChatInputCommand === 'function';
+  }
+
+  private createAuditEventPayload(interaction: ChatInputCommandInteraction): CommandAuditEventPayload {
     return {
-      command: interaction.commandName,
-      user: {
-        id: interaction.user.id,
-        tag: interaction.user.tag,
-      },
       guildId: interaction.guildId,
-      channelId: interaction.channelId,
+      actorUserId: interaction.user.id,
+      entityType: 'discord_command',
+      entityId: interaction.commandName,
+      occurredAt: new Date(),
+      metadata: {
+        command: interaction.commandName,
+        user: {
+          id: interaction.user.id,
+          tag: interaction.user.tag,
+        },
+        channelId: interaction.channelId,
+      },
     };
   }
 

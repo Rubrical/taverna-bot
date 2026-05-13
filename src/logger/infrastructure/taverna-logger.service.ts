@@ -7,14 +7,12 @@ import { LogPublisher } from './log-publisher.service.js';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class TavernaLogger extends ConsoleLogger {
-  private readonly AppContext: string;
   constructor(
     private readonly publisher: LogPublisher,
     private readonly config: ConfigService,
   ) {
     const appContext = config.get<string>('APPLICATION_NAME', 'Taverna Bot');
     super({ prefix: appContext });
-    this.AppContext = appContext;
   }
 
   override log(message: unknown, contextOrMetadata?: string | LogMetadata): void {

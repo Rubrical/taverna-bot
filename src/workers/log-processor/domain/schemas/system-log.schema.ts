@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
 import type { LogLevel } from '../../../../common/types/index.js';
+import type { LogKind } from '../../../../logger/domain/interfaces/log-entry.interface.js';
 
 export type SystemLogDocument = HydratedDocument<SystemLog>;
 
@@ -15,6 +16,9 @@ export class SystemLog {
 
   @Prop()
   context?: string;
+
+  @Prop({ default: 'system', enum: ['system', 'audit'], type: String })
+  kind?: LogKind;
 
   @Prop({ required: true })
   timestamp: string;

@@ -20,9 +20,14 @@ export class LogPublisher {
   }
 
   publish(entry: LogEntry): void {
+    const normalizedEntry: LogEntry = {
+      ...entry,
+      kind: entry.kind ?? 'system',
+    };
+
     try {
       this.client
-        .emit<unknown, LogEntry>(QUEUES.SYSTEM_LOGS, entry)
+        .emit<unknown, LogEntry>(QUEUES.SYSTEM_LOGS, normalizedEntry)
         .pipe(
           catchError((error: unknown) => {
             this.reportFailure(error);

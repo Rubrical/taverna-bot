@@ -209,3 +209,10 @@ refactor/<description>
 - Log everything that may be queryable ,for later analysis and reports, or can produce a side effect such as an error.
 - File logs are saved by default on the `logs` folder.
 - All `TavernaLogger` logs are sent to *system_logs* collection on the database.
+
+### Cache Layer
+
+- The cache module is imported globally so it doesn't need to be imported.
+- When injecting the cache use the following sintax: `@Inject(CACHE_MANAGER) private readonly _cache: Cache`.
+- Import both Cache and CACHE_MANAGER from the `@nestjs/cache-manager` package.
+- All cache keys should be stored at the _"src/infrastructure/cache/cache-keys.ts"_ file

@@ -4,10 +4,12 @@ export interface LogMetadata {
   readonly [key: string]: unknown;
 }
 
+export type LogKind = 'system' | 'audit';
 export interface LogEntry {
   readonly level: LogLevel;
   readonly message: string;
   readonly context?: string;
+  readonly kind?: LogKind;
   readonly timestamp: string;
   readonly metadata?: LogMetadata;
 }

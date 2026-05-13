@@ -1,8 +1,9 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { lastValueFrom, of, throwError } from 'rxjs';
 
-import { CommandLoggingInterceptor } from '../../../src/discord/commands/interceptors/command-logging-interceptor';
-import type { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
+import { CommandLoggingInterceptor } from '../../../src/discord/commands/interceptors/command-logging-interceptor.js';
+import type { AuditEventPayload } from '../../../src/logger/domain/interfaces/audit-event-payload.js';
+import type { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service.js';
 
 interface LoggerMock {
   readonly setContext: jest.Mock<void, [string]>;
@@ -16,9 +17,13 @@ interface InteractionMock {
     readonly id: string;
     readonly tag: string;
   };
-  readonly guildId: string;
+  readonly guildId: string | null;
   readonly channelId: string;
   readonly isChatInputCommand: jest.Mock<boolean, []>;
+}
+
+interface CommandAuditEventPayload extends AuditEventPayload {
+  readonly durationMs?: number;
 }
 
 function createLoggerMock(): LoggerMock {
@@ -60,6 +65,24 @@ function createInteraction(): InteractionMock {
   };
 }
 
+function expectCommandAuditPayload(payload: CommandAuditEventPayload, guildId: string | null = 'guild-id'): void {
+  expect(payload).toMatchObject({
+    guildId,
+    actorUserId: 'user-id',
+    entityType: 'discord_command',
+    entityId: 'ping',
+    metadata: {
+      command: 'ping',
+      user: {
+        id: 'user-id',
+        tag: 'user#0001',
+      },
+      channelId: 'channel-id',
+    },
+  });
+  expect(payload.occurredAt).toBeInstanceOf(Date);
+}
+
 describe('CommandLoggingInterceptor', () => {
   let logger: LoggerMock;
   let interceptor: CommandLoggingInterceptor;
@@ -80,25 +103,15 @@ describe('CommandLoggingInterceptor', () => {
     await lastValueFrom(interceptor.intercept(context, createCallHandler('pong')));
 
     expect(logger.log).toHaveBeenCalledTimes(2);
-    expect(logger.log).toHaveBeenNthCalledWith(1, 'Discord command started: /ping', {
-      command: 'ping',
-      user: {
-        id: 'user-id',
-        tag: 'user#0001',
-      },
-      guildId: 'guild-id',
-      channelId: 'channel-id',
-    });
-    expect(logger.log).toHaveBeenNthCalledWith(2, 'Discord command finished: /ping', {
-      command: 'ping',
-      user: {
-        id: 'user-id',
-        tag: 'user#0001',
-      },
-      guildId: 'guild-id',
-      channelId: 'channel-id',
-      durationMs: expect.any(Number),
-    });
+    expect(logger.log.mock.calls[0]?.[0]).toBe('Discord command started: /ping');
+    expect(logger.log.mock.calls[1]?.[0]).toBe('Discord command finished: /ping');
+
+    const startedPayload = logger.log.mock.calls[0]?.[1] as CommandAuditEventPayload;
+    const finishedPayload = logger.log.mock.calls[1]?.[1] as CommandAuditEventPayload;
+
+    expectCommandAuditPayload(startedPayload);
+    expectCommandAuditPayload(finishedPayload);
+    expect(typeof finishedPayload.durationMs).toBe('number');
   });
 
   it('should log command failures', async () => {
@@ -108,16 +121,13 @@ describe('CommandLoggingInterceptor', () => {
 
     await expect(lastValueFrom(interceptor.intercept(context, createFailingCallHandler(error)))).rejects.toThrow(error);
 
-    expect(logger.error).toHaveBeenCalledWith('Discord command failed: /ping', error, {
-      command: 'ping',
-      user: {
-        id: 'user-id',
-        tag: 'user#0001',
-      },
-      guildId: 'guild-id',
-      channelId: 'channel-id',
-      durationMs: expect.any(Number),
-    });
+    expect(logger.error.mock.calls[0]?.[0]).toBe('Discord command failed: /ping');
+    expect(logger.error.mock.calls[0]?.[1]).toBe(error);
+
+    const failedPayload = logger.error.mock.calls[0]?.[2] as CommandAuditEventPayload;
+
+    expectCommandAuditPayload(failedPayload);
+    expect(typeof failedPayload.durationMs).toBe('number');
   });
 
   it('should ignore non chat input interactions', async () => {
@@ -131,5 +141,22 @@ describe('CommandLoggingInterceptor', () => {
 
     expect(logger.log).not.toHaveBeenCalled();
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('should log interactions without guild id', async () => {
+    const interaction = {
+      ...createInteraction(),
+      guildId: null,
+    };
+    const context = createExecutionContext([interaction]);
+
+    await lastValueFrom(interceptor.intercept(context, createCallHandler('logged')));
+
+    expect(logger.log).toHaveBeenCalledTimes(2);
+    expect(logger.error).not.toHaveBeenCalled();
+
+    const startedPayload = logger.log.mock.calls[0]?.[1] as CommandAuditEventPayload;
+
+    expectCommandAuditPayload(startedPayload, null);
   });
 });
