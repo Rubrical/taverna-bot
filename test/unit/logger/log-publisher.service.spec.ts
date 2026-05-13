@@ -68,7 +68,10 @@ describe('LogPublisher', () => {
     publisher.publish(entry);
 
     expect(config.get).toHaveBeenCalledWith('APPLICATION_NAME', 'Taverna Bot');
-    expect(client.emit).toHaveBeenCalledWith(QUEUES.SYSTEM_LOGS, entry);
+    expect(client.emit).toHaveBeenCalledWith(QUEUES.SYSTEM_LOGS, {
+      ...entry,
+      kind: 'system',
+    });
   });
 
   it('should not throw when RabbitMQ emit throws synchronously', () => {
