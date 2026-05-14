@@ -1,36 +1,20 @@
-import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
-import { Inject, Injectable, UseInterceptors } from '@nestjs/common';
+import { Injectable, UseInterceptors } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
 import { Context, SlashCommand, type SlashCommandContext } from 'necord';
 
 import { BotStatusInfoService } from '../../admin/application/bot-status-info.service.js';
-import type { BotInfo, BotStatus } from '../../admin/domain/bot-status-info.js';
+import type { BotInfo } from '../../admin/domain/bot-status-info.js';
 import { formatElapsedTime } from '../../common/helpers/elapsed-time.helper.js';
-import { cacheKeys } from '../../infrastructure/cache/cache-keys.js';
-import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
 import { CommandLoggingInterceptor } from './interceptors/command-logging-interceptor.js';
 
 @Injectable()
 export class BotInfoCommand {
-  constructor(
-    @Inject(CACHE_MANAGER) private readonly _cache: Cache,
-    private readonly _botInfoService: BotStatusInfoService,
-    private readonly _logger: TavernaLogger,
-  ) {
-    _logger.setContext(BotInfoCommand.name);
-  }
+  constructor(private readonly _botInfoService: BotStatusInfoService) {}
 
   @UseInterceptors(CommandLoggingInterceptor)
   @SlashCommand({ name: 'bot-info', description: 'Get the bot info' })
   async execute(@Context() [interaction]: SlashCommandContext): Promise<void> {
-    const botStatusCacheKey = cacheKeys.bot.status();
-    let botStatus = await this._cache.get<BotStatus>(botStatusCacheKey);
-
-    if (!botStatus) {
-      this._logger.warn('Bot status cache miss. Rebuilding bot status info.');
-      botStatus = await this._botInfoService.getBasicApplicationInfo();
-      await this._cache.set(botStatusCacheKey, botStatus, 0);
-    }
+    const botStatus = await this._botInfoService.getCachedBotStatusOrElseBasicApplicationInfo();
 
     const botInfo: BotInfo = {
       name: botStatus.name,

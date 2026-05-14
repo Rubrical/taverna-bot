@@ -1,8 +1,11 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { execFile } from 'node:child_process';
 
 import { BotStatusInfoService } from '../../../src/admin/application/bot-status-info.service';
+import type { BotStatus } from '../../../src/admin/domain/bot-status-info';
+import { cacheKeys } from '../../../src/infrastructure/cache/cache-keys';
 import { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
 
 jest.mock('node:child_process', () => ({
@@ -19,6 +22,11 @@ type TavernaLoggerMock = {
   error: jest.Mock<void, [unknown, unknown?]>;
 };
 
+type CacheMock = {
+  readonly get: jest.Mock<Promise<BotStatus | undefined>, [string]>;
+  readonly set: jest.Mock<Promise<void>, [string, BotStatus, number]>;
+};
+
 type ExecFileCallback = (error: Error | null, result?: { readonly stdout: string }) => void;
 
 const mockedExecFile = execFile as unknown as jest.Mock<void, [string, readonly string[], ExecFileCallback]>;
@@ -27,6 +35,7 @@ describe('BotStatusInfoService', () => {
   let service: BotStatusInfoService;
   let config: ConfigServiceMock;
   let logger: TavernaLoggerMock;
+  let cache: CacheMock;
 
   beforeEach(async () => {
     jest.useFakeTimers();
@@ -54,6 +63,10 @@ describe('BotStatusInfoService', () => {
       warn: jest.fn<void, [unknown]>(),
       error: jest.fn<void, [unknown, unknown?]>(),
     };
+    cache = {
+      get: jest.fn<Promise<BotStatus | undefined>, [string]>(),
+      set: jest.fn<Promise<void>, [string, BotStatus, number]>().mockResolvedValue(undefined),
+    };
 
     jest.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 128 * 1024 * 1024,
@@ -66,6 +79,10 @@ describe('BotStatusInfoService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotStatusInfoService,
+        {
+          provide: CACHE_MANAGER,
+          useValue: cache,
+        },
         {
           provide: TavernaLogger,
           useValue: logger,
@@ -164,6 +181,29 @@ describe('BotStatusInfoService', () => {
           discordBotStatus: discordBotStatus,
         }),
       );
+    });
+  });
+
+  describe('getCachedBotStatusOrElseBasicApplicationInfo()', () => {
+    it('should return cached bot status when it is available', async () => {
+      const botStatus = await service.getBasicApplicationInfo();
+      cache.get.mockResolvedValue(botStatus);
+
+      const cachedBotStatus = await service.getCachedBotStatusOrElseBasicApplicationInfo();
+
+      expect(cache.get).toHaveBeenCalledWith(cacheKeys.bot.status());
+      expect(cache.set).not.toHaveBeenCalled();
+      expect(cachedBotStatus).toBe(botStatus);
+    });
+
+    it('should rebuild and cache bot status when cache is empty', async () => {
+      cache.get.mockResolvedValue(undefined);
+
+      const botStatus = await service.getCachedBotStatusOrElseBasicApplicationInfo();
+
+      expect(logger.warn).toHaveBeenCalledWith('Bot status cache miss. Rebuilding bot status info.');
+      expect(cache.set).toHaveBeenCalledWith(cacheKeys.bot.status(), botStatus, 0);
+      expect(botStatus.name).toBe('Taverna Bot');
     });
   });
 });
