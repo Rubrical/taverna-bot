@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
+import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
 import type {
-  LogProcessorRepositoryPort,
+  SystemLogRepositoryPort,
   SystemLogSearchCriteria,
-} from '../domain/interfaces/log-processor-repository.interface.js';
+} from '../domain/interfaces/system-log-repository.interface.js';
 import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.schema.js';
 
 type SystemLogSearchQuery = {
@@ -24,7 +24,7 @@ type SystemLogSearchQuery = {
 };
 
 @Injectable()
-export class LogProcessorRepository implements LogProcessorRepositoryPort {
+export class SystemLogRepository implements SystemLogRepositoryPort {
   constructor(
     @InjectModel(SystemLog.name)
     private readonly systemLogModel: Model<SystemLogDocument>,

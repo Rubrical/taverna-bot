@@ -4,11 +4,11 @@ import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { Channel, Message } from 'amqplib';
 
 import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
-import { QUEUES } from '../../../infrastructure/queues/queue-names.js';
 import {
-  LOG_PROCESSOR_REPOSITORY,
-  type LogProcessorRepositoryPort,
-} from '../domain/interfaces/log-processor-repository.interface.js';
+  SYSTEM_LOG_REPOSITORY,
+  type SystemLogRepositoryPort,
+} from '../../../logger/domain/interfaces/system-log-repository.interface.js';
+import { QUEUES } from '../../../infrastructure/queues/queue-names.js';
 
 @Controller()
 export class LogProcessorController {
@@ -16,8 +16,8 @@ export class LogProcessorController {
   private readonly _fallbackLogger: ConsoleLogger;
 
   constructor(
-    @Inject(LOG_PROCESSOR_REPOSITORY)
-    private readonly repository: LogProcessorRepositoryPort,
+    @Inject(SYSTEM_LOG_REPOSITORY)
+    private readonly repository: SystemLogRepositoryPort,
     config: ConfigService,
   ) {
     const appContext = config.get<string>('APPLICATION_NAME', 'Taverna Bot');

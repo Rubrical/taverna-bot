@@ -1,9 +1,9 @@
 import type { Model } from 'mongoose';
 
 import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface.js';
-import type { SystemLogSearchCriteria } from '../../../src/workers/log-processor/domain/interfaces/log-processor-repository.interface.js';
-import { LogProcessorRepository } from '../../../src/workers/log-processor/infrastructure/log-processor.repository.js';
-import type { SystemLogDocument } from '../../../src/workers/log-processor/domain/schemas/system-log.schema.js';
+import type { SystemLogSearchCriteria } from '../../../src/logger/domain/interfaces/system-log-repository.interface.js';
+import type { SystemLogDocument } from '../../../src/logger/domain/schemas/system-log.schema.js';
+import { SystemLogRepository } from '../../../src/logger/infrastructure/system-log.repository.js';
 
 type QueryMock<TResult> = {
   exec: jest.Mock<Promise<TResult>, []>;
@@ -36,11 +36,11 @@ function createSystemLogModelMock(saveResult: SystemLogDocument): {
   return { model, save };
 }
 
-describe('LogProcessorRepository', () => {
+describe('SystemLogRepository', () => {
   let document: SystemLogDocument;
   let model: SystemLogModelMock;
   let save: jest.Mock<Promise<SystemLogDocument>, []>;
-  let repository: LogProcessorRepository;
+  let repository: SystemLogRepository;
 
   beforeEach(() => {
     document = {
@@ -54,7 +54,7 @@ describe('LogProcessorRepository', () => {
     const modelMock = createSystemLogModelMock(document);
     model = modelMock.model;
     save = modelMock.save;
-    repository = new LogProcessorRepository(model as unknown as Model<SystemLogDocument>);
+    repository = new SystemLogRepository(model as unknown as Model<SystemLogDocument>);
   });
 
   it('should save a log entry', async () => {
