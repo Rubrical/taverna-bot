@@ -1,23 +1,36 @@
 import type { Model } from 'mongoose';
 
 import type { LogEntry } from '../../../src/logger/domain/interfaces/log-entry.interface.js';
-import type { SystemLogSearchCriteria } from '../../../src/workers/log-processor/domain/interfaces/log-processor-repository.interface.js';
-import { LogProcessorRepository } from '../../../src/workers/log-processor/infrastructure/log-processor.repository.js';
-import type { SystemLogDocument } from '../../../src/workers/log-processor/domain/schemas/system-log.schema.js';
+import type { SystemLogSearchCriteria } from '../../../src/logger/domain/interfaces/system-log-repository.interface.js';
+import type { SystemLogDocument } from '../../../src/logger/domain/schemas/system-log.schema.js';
+import { SystemLogRepository } from '../../../src/logger/infrastructure/system-log.repository.js';
 
 type QueryMock<TResult> = {
+  limit: jest.Mock<QueryMock<TResult>, [number]>;
+  skip: jest.Mock<QueryMock<TResult>, [number]>;
+  sort: jest.Mock<QueryMock<TResult>, [Record<string, 1 | -1>]>;
   exec: jest.Mock<Promise<TResult>, []>;
 };
 
 type SystemLogModelMock = jest.Mock & {
   findById: jest.Mock<QueryMock<SystemLogDocument | null>, [string]>;
   find: jest.Mock<QueryMock<SystemLogDocument[]>, [Record<string, unknown>]>;
+  countDocuments: jest.Mock<QueryMock<number>, [Record<string, unknown>]>;
 };
 
 function createQueryMock<TResult>(result: TResult): QueryMock<TResult> {
-  return {
+  const query = {
+    limit: jest.fn<QueryMock<TResult>, [number]>(),
+    skip: jest.fn<QueryMock<TResult>, [number]>(),
+    sort: jest.fn<QueryMock<TResult>, [Record<string, 1 | -1>]>(),
     exec: jest.fn<Promise<TResult>, []>().mockResolvedValue(result),
   };
+
+  query.limit.mockReturnValue(query);
+  query.skip.mockReturnValue(query);
+  query.sort.mockReturnValue(query);
+
+  return query;
 }
 
 function createSystemLogModelMock(saveResult: SystemLogDocument): {
@@ -32,15 +45,16 @@ function createSystemLogModelMock(saveResult: SystemLogDocument): {
 
   model.findById = jest.fn<QueryMock<SystemLogDocument | null>, [string]>();
   model.find = jest.fn<QueryMock<SystemLogDocument[]>, [Record<string, unknown>]>();
+  model.countDocuments = jest.fn<QueryMock<number>, [Record<string, unknown>]>();
 
   return { model, save };
 }
 
-describe('LogProcessorRepository', () => {
+describe('SystemLogRepository', () => {
   let document: SystemLogDocument;
   let model: SystemLogModelMock;
   let save: jest.Mock<Promise<SystemLogDocument>, []>;
-  let repository: LogProcessorRepository;
+  let repository: SystemLogRepository;
 
   beforeEach(() => {
     document = {
@@ -54,7 +68,7 @@ describe('LogProcessorRepository', () => {
     const modelMock = createSystemLogModelMock(document);
     model = modelMock.model;
     save = modelMock.save;
-    repository = new LogProcessorRepository(model as unknown as Model<SystemLogDocument>);
+    repository = new SystemLogRepository(model as unknown as Model<SystemLogDocument>);
   });
 
   it('should save a log entry', async () => {
@@ -83,11 +97,14 @@ describe('LogProcessorRepository', () => {
   });
 
   it('should find logs without filters', async () => {
-    model.find.mockReturnValueOnce(createQueryMock([document]));
+    const query = createQueryMock([document]);
+    model.find.mockReturnValueOnce(query);
 
     const result = await repository.findMany({});
 
     expect(model.find).toHaveBeenCalledWith({});
+    expect(query.sort).toHaveBeenCalledWith({ timestamp: -1 });
+    expect(query.limit).not.toHaveBeenCalled();
     expect(result).toEqual([document]);
   });
 
@@ -99,20 +116,60 @@ describe('LogProcessorRepository', () => {
       from: '2026-05-06T00:00:00.000Z',
       to: '2026-05-06T23:59:59.999Z',
       message: 'exception',
+      kind: 'audit',
+      guildId: 'guild-123',
+      actorUserId: 'actor-123',
+      limit: 10,
+      skip: 20,
+      sortDirection: 'desc',
     };
-    model.find.mockReturnValueOnce(createQueryMock([document]));
+    const query = createQueryMock([document]);
+    model.find.mockReturnValueOnce(query);
 
     await repository.findMany(criteria);
 
     expect(model.find).toHaveBeenCalledWith({
       level: 'error',
       context: 'RuntimeHandler',
+      kind: 'audit',
       'metadata.userId': 'user-123',
+      'metadata.guildId': 'guild-123',
+      'metadata.actorUserId': 'actor-123',
       message: { $regex: 'exception', $options: 'i' },
       timestamp: {
         $gte: '2026-05-06T00:00:00.000Z',
         $lte: '2026-05-06T23:59:59.999Z',
       },
     });
+    expect(query.sort).toHaveBeenCalledWith({ timestamp: -1 });
+    expect(query.skip).toHaveBeenCalledWith(20);
+    expect(query.limit).toHaveBeenCalledWith(10);
+  });
+
+  it('should sort logs by timestamp ascending when requested', async () => {
+    const query = createQueryMock([document]);
+    model.find.mockReturnValueOnce(query);
+
+    await repository.findMany({ sortDirection: 'asc' });
+
+    expect(query.sort).toHaveBeenCalledWith({ timestamp: 1 });
+  });
+
+  it('should count logs by supported search criteria', async () => {
+    const query = createQueryMock(7);
+    model.countDocuments.mockReturnValueOnce(query);
+
+    const result = await repository.count({
+      kind: 'audit',
+      guildId: 'guild-123',
+      actorUserId: 'actor-123',
+    });
+
+    expect(model.countDocuments).toHaveBeenCalledWith({
+      kind: 'audit',
+      'metadata.guildId': 'guild-123',
+      'metadata.actorUserId': 'actor-123',
+    });
+    expect(result).toBe(7);
   });
 });

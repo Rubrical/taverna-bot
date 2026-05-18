@@ -2,16 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import type { LogEntry } from '../../../logger/domain/interfaces/log-entry.interface.js';
+import type { LogEntry } from '../domain/interfaces/log-entry.interface.js';
 import type {
-  LogProcessorRepositoryPort,
+  SystemLogRepositoryPort,
   SystemLogSearchCriteria,
-} from '../domain/interfaces/log-processor-repository.interface.js';
+} from '../domain/interfaces/system-log-repository.interface.js';
 import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.schema.js';
 
 type SystemLogSearchQuery = {
   level?: SystemLogDocument['level'];
   context?: string;
+  kind?: SystemLogDocument['kind'];
   message?: {
     $regex: string;
     $options: string;
@@ -21,10 +22,12 @@ type SystemLogSearchQuery = {
     $lte?: string;
   };
   'metadata.userId'?: string;
+  'metadata.guildId'?: string;
+  'metadata.actorUserId'?: string;
 };
 
 @Injectable()
-export class LogProcessorRepository implements LogProcessorRepositoryPort {
+export class SystemLogRepository implements SystemLogRepositoryPort {
   constructor(
     @InjectModel(SystemLog.name)
     private readonly systemLogModel: Model<SystemLogDocument>,
@@ -41,7 +44,22 @@ export class LogProcessorRepository implements LogProcessorRepositoryPort {
 
   async findMany(criteria: SystemLogSearchCriteria): Promise<readonly SystemLogDocument[]> {
     const query = this.createSearchQuery(criteria);
-    return this.systemLogModel.find(query).exec();
+    const sortDirection = criteria.sortDirection === 'asc' ? 1 : -1;
+    const findQuery = this.systemLogModel.find(query).sort({ timestamp: sortDirection });
+
+    if (criteria.skip) {
+      findQuery.skip(criteria.skip);
+    }
+
+    if (!criteria.limit) {
+      return findQuery.exec();
+    }
+
+    return findQuery.limit(criteria.limit).exec();
+  }
+
+  async count(criteria: SystemLogSearchCriteria): Promise<number> {
+    return this.systemLogModel.countDocuments(this.createSearchQuery(criteria)).exec();
   }
 
   private createSearchQuery(criteria: SystemLogSearchCriteria): SystemLogSearchQuery {
@@ -55,8 +73,20 @@ export class LogProcessorRepository implements LogProcessorRepositoryPort {
       query.context = criteria.context;
     }
 
+    if (criteria.kind) {
+      query.kind = criteria.kind;
+    }
+
     if (criteria.userId) {
       query['metadata.userId'] = criteria.userId;
+    }
+
+    if (criteria.guildId) {
+      query['metadata.guildId'] = criteria.guildId;
+    }
+
+    if (criteria.actorUserId) {
+      query['metadata.actorUserId'] = criteria.actorUserId;
     }
 
     if (criteria.message) {

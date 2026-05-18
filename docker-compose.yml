@@ -1,3 +1,5 @@
+name: taverna_bot
+
 services:
   app:
     image: docker.io/library/node:22-alpine

@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, type Cache } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
+import { cacheKeys } from '../../infrastructure/cache/cache-keys.js';
 import { TavernaLogger } from '../../logger/infrastructure/taverna-logger.service.js';
 import type { BotStatus, DiscordBotStatus } from '../domain/bot-status-info.js';
 
@@ -13,6 +15,7 @@ export class BotStatusInfoService {
   private botInfo?: BotStatus;
 
   constructor(
+    @Inject(CACHE_MANAGER) private readonly _cache: Cache,
     private readonly _logger: TavernaLogger,
     private readonly _configService: ConfigService,
   ) {
@@ -24,6 +27,21 @@ export class BotStatusInfoService {
     this.botInfo = this.mergeDiscordBotStatus(info);
 
     return this.botInfo;
+  }
+
+  public async getCachedBotStatusOrElseBasicApplicationInfo(): Promise<BotStatus> {
+    const botStatusCacheKey = cacheKeys.bot.status();
+    const cachedBotStatus = await this._cache.get<BotStatus>(botStatusCacheKey);
+
+    if (cachedBotStatus) {
+      return cachedBotStatus;
+    }
+
+    this._logger.warn('Bot status cache miss. Rebuilding bot status info.');
+    const botStatus = await this.getBasicApplicationInfo();
+    await this._cache.set(botStatusCacheKey, botStatus, 0);
+
+    return botStatus;
   }
 
   public async updateDiscordBotStatus(discordBotStatus: DiscordBotStatus): Promise<BotStatus> {
