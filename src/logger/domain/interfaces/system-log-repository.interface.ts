@@ -1,6 +1,6 @@
 import type { Repository } from '../../../common/repositories/repository.interface.js';
 import type { LogLevel } from '../../../common/types/index.js';
-import type { LogEntry } from './log-entry.interface.js';
+import type { LogEntry, LogKind } from './log-entry.interface.js';
 import type { SystemLogDocument } from '../schemas/system-log.schema.js';
 
 export const SYSTEM_LOG_REPOSITORY = Symbol('SYSTEM_LOG_REPOSITORY');
@@ -12,10 +12,22 @@ export interface SystemLogSearchCriteria {
   readonly from?: string;
   readonly to?: string;
   readonly message?: string;
+  readonly kind?: LogKind;
+  readonly guildId?: string;
+  readonly actorUserId?: string;
+  readonly limit?: number;
+  readonly skip?: number;
+  readonly sortDirection?: 'asc' | 'desc';
 }
 
-export interface SystemLogRepositoryPort extends Repository<LogEntry, SystemLogDocument, string, SystemLogSearchCriteria> {
+export interface SystemLogRepositoryPort extends Repository<
+  LogEntry,
+  SystemLogDocument,
+  string,
+  SystemLogSearchCriteria
+> {
   save(entry: LogEntry): Promise<SystemLogDocument>;
   findById(id: string): Promise<SystemLogDocument | null>;
   findMany(criteria: SystemLogSearchCriteria): Promise<readonly SystemLogDocument[]>;
+  count(criteria: SystemLogSearchCriteria): Promise<number>;
 }

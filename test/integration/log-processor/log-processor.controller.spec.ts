@@ -37,17 +37,15 @@ function createSaveMock(): SystemLogRepositoryMock['save'] {
 }
 
 function createFindByIdMock(): SystemLogRepositoryMock['findById'] {
-  return jest.fn<
-    ReturnType<SystemLogRepositoryPort['findById']>,
-    Parameters<SystemLogRepositoryPort['findById']>
-  >();
+  return jest.fn<ReturnType<SystemLogRepositoryPort['findById']>, Parameters<SystemLogRepositoryPort['findById']>>();
 }
 
 function createFindManyMock(): SystemLogRepositoryMock['findMany'] {
-  return jest.fn<
-    ReturnType<SystemLogRepositoryPort['findMany']>,
-    Parameters<SystemLogRepositoryPort['findMany']>
-  >();
+  return jest.fn<ReturnType<SystemLogRepositoryPort['findMany']>, Parameters<SystemLogRepositoryPort['findMany']>>();
+}
+
+function createCountMock(): SystemLogRepositoryMock['count'] {
+  return jest.fn<ReturnType<SystemLogRepositoryPort['count']>, Parameters<SystemLogRepositoryPort['count']>>();
 }
 
 function createRmqContextMock(): RmqContextMock {
@@ -103,6 +101,7 @@ describe('LogProcessorController', () => {
       save: createSaveMock(),
       findById: createFindByIdMock(),
       findMany: createFindManyMock(),
+      count: createCountMock(),
     });
     config = {
       get: jest.fn<string, [string, string]>().mockReturnValue('Taverna Bot'),

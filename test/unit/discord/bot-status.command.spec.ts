@@ -3,7 +3,7 @@ import type { SlashCommandContext } from 'necord';
 
 import { BotStatusInfoService } from '../../../src/admin/application/bot-status-info.service';
 import type { BotStatus } from '../../../src/admin/domain/bot-status-info';
-import { BotStatusCommand } from '../../../src/discord/commands/bot-status.command';
+import { BotStatusCommand } from '../../../src/discord/commands/bot/bot-status.command';
 import { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
 
 interface ReplyPayload {
@@ -15,7 +15,7 @@ type MockInteraction = {
 };
 
 type BotStatusInfoServiceMock = {
-  readonly getCachedBotStatus: jest.Mock<Promise<BotStatus>, []>;
+  readonly getCachedBotStatusOrElseBasicApplicationInfo: jest.Mock<Promise<BotStatus>, []>;
 };
 
 function createBotStatus(overrides: Partial<BotStatus> = {}): BotStatus {
@@ -63,7 +63,7 @@ describe('BotStatusCommand', () => {
 
   beforeEach(async () => {
     botStatusInfoService = {
-      getCachedBotStatus: jest.fn<Promise<BotStatus>, []>(),
+      getCachedBotStatusOrElseBasicApplicationInfo: jest.fn<Promise<BotStatus>, []>(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -89,29 +89,29 @@ describe('BotStatusCommand', () => {
 
   it('should reply with cached complete bot status when Redis has data', async () => {
     const botStatus = createBotStatus();
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
 
-    expect(botStatusInfoService.getCachedBotStatus).toHaveBeenCalledTimes(1);
+    expect(botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo).toHaveBeenCalledTimes(1);
     expect(interaction.reply).toHaveBeenCalledTimes(1);
   });
 
   it('should reply with complete bot status returned by the status service', async () => {
     const botStatus = createBotStatus({ discordBotStatus: undefined });
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
 
-    expect(botStatusInfoService.getCachedBotStatus).toHaveBeenCalledTimes(1);
+    expect(botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo).toHaveBeenCalledTimes(1);
     expect(interaction.reply).toHaveBeenCalledTimes(1);
   });
 
   it('should format valid dates as YYYY/MM/DD', async () => {
     const botStatus = createBotStatus();
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
@@ -141,7 +141,7 @@ describe('BotStatusCommand', () => {
         guilds: ['Guild One'],
       },
     });
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);

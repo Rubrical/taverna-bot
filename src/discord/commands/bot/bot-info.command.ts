@@ -2,10 +2,10 @@ import { Injectable, UseInterceptors } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
 import { Context, SlashCommand, type SlashCommandContext } from 'necord';
 
-import { BotStatusInfoService } from '../../admin/application/bot-status-info.service.js';
-import type { BotInfo } from '../../admin/domain/bot-status-info.js';
-import { formatElapsedTime } from '../../common/helpers/elapsed-time.helper.js';
-import { CommandLoggingInterceptor } from './interceptors/command-logging-interceptor.js';
+import { BotStatusInfoService } from '../../../admin/application/bot-status-info.service.js';
+import type { BotInfo } from '../../../admin/domain/bot-status-info.js';
+import { formatElapsedTime } from '../../../common/helpers/elapsed-time.helper.js';
+import { CommandLoggingInterceptor } from '../interceptors/command-logging-interceptor.js';
 
 @Injectable()
 export class BotInfoCommand {

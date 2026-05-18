@@ -12,6 +12,7 @@ import { SystemLog, type SystemLogDocument } from '../domain/schemas/system-log.
 type SystemLogSearchQuery = {
   level?: SystemLogDocument['level'];
   context?: string;
+  kind?: SystemLogDocument['kind'];
   message?: {
     $regex: string;
     $options: string;
@@ -21,6 +22,8 @@ type SystemLogSearchQuery = {
     $lte?: string;
   };
   'metadata.userId'?: string;
+  'metadata.guildId'?: string;
+  'metadata.actorUserId'?: string;
 };
 
 @Injectable()
@@ -41,7 +44,22 @@ export class SystemLogRepository implements SystemLogRepositoryPort {
 
   async findMany(criteria: SystemLogSearchCriteria): Promise<readonly SystemLogDocument[]> {
     const query = this.createSearchQuery(criteria);
-    return this.systemLogModel.find(query).exec();
+    const sortDirection = criteria.sortDirection === 'asc' ? 1 : -1;
+    const findQuery = this.systemLogModel.find(query).sort({ timestamp: sortDirection });
+
+    if (criteria.skip) {
+      findQuery.skip(criteria.skip);
+    }
+
+    if (!criteria.limit) {
+      return findQuery.exec();
+    }
+
+    return findQuery.limit(criteria.limit).exec();
+  }
+
+  async count(criteria: SystemLogSearchCriteria): Promise<number> {
+    return this.systemLogModel.countDocuments(this.createSearchQuery(criteria)).exec();
   }
 
   private createSearchQuery(criteria: SystemLogSearchCriteria): SystemLogSearchQuery {
@@ -55,8 +73,20 @@ export class SystemLogRepository implements SystemLogRepositoryPort {
       query.context = criteria.context;
     }
 
+    if (criteria.kind) {
+      query.kind = criteria.kind;
+    }
+
     if (criteria.userId) {
       query['metadata.userId'] = criteria.userId;
+    }
+
+    if (criteria.guildId) {
+      query['metadata.guildId'] = criteria.guildId;
+    }
+
+    if (criteria.actorUserId) {
+      query['metadata.actorUserId'] = criteria.actorUserId;
     }
 
     if (criteria.message) {

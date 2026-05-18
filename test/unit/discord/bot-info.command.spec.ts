@@ -3,7 +3,7 @@ import type { SlashCommandContext } from 'necord';
 
 import { BotStatusInfoService } from '../../../src/admin/application/bot-status-info.service';
 import type { BotStatus } from '../../../src/admin/domain/bot-status-info';
-import { BotInfoCommand } from '../../../src/discord/commands/bot-info.command';
+import { BotInfoCommand } from '../../../src/discord/commands/bot/bot-info.command';
 import { TavernaLogger } from '../../../src/logger/infrastructure/taverna-logger.service';
 
 interface ReplyPayload {
@@ -16,7 +16,7 @@ type MockInteraction = {
 };
 
 type BotStatusInfoServiceMock = {
-  readonly getCachedBotStatus: jest.Mock<Promise<BotStatus>, []>;
+  readonly getCachedBotStatusOrElseBasicApplicationInfo: jest.Mock<Promise<BotStatus>, []>;
 };
 
 function createBotStatus(overrides: Partial<BotStatus> = {}): BotStatus {
@@ -69,7 +69,7 @@ describe('BotInfoCommand', () => {
 
   beforeEach(async () => {
     botStatusInfoService = {
-      getCachedBotStatus: jest.fn<Promise<BotStatus>, []>(),
+      getCachedBotStatusOrElseBasicApplicationInfo: jest.fn<Promise<BotStatus>, []>(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -95,18 +95,18 @@ describe('BotInfoCommand', () => {
 
   it('should reply with cached bot info when Redis has data', async () => {
     const botStatus = createBotStatus();
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
 
-    expect(botStatusInfoService.getCachedBotStatus).toHaveBeenCalledTimes(1);
+    expect(botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo).toHaveBeenCalledTimes(1);
     expect(interaction.reply).toHaveBeenCalledTimes(1);
   });
 
   it('should only include public bot info fields in the reply', async () => {
     const botStatus = createBotStatus();
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
@@ -137,7 +137,7 @@ describe('BotInfoCommand', () => {
     const botStatus = createBotStatus({
       startedAt: new Date('2026-05-11T10:00:00.000Z'),
     });
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
@@ -157,12 +157,12 @@ describe('BotInfoCommand', () => {
 
   it('should reply with bot info returned by the status service', async () => {
     const botStatus = createBotStatus({ discordBotStatus: undefined });
-    botStatusInfoService.getCachedBotStatus.mockResolvedValue(botStatus);
+    botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo.mockResolvedValue(botStatus);
     const { context, interaction } = createContext();
 
     await command.execute(context);
 
-    expect(botStatusInfoService.getCachedBotStatus).toHaveBeenCalledTimes(1);
+    expect(botStatusInfoService.getCachedBotStatusOrElseBasicApplicationInfo).toHaveBeenCalledTimes(1);
     expect(interaction.reply).toHaveBeenCalledTimes(1);
   });
 });
