@@ -7,6 +7,7 @@ import { AppCacheModule } from './infrastructure/cache/cache.module.js';
 import { LoggerModule } from './logger/logger.module.js';
 import { DiscordModule } from './discord/discord.module.js';
 import { WorkersModule } from './workers/workers.module.js';
+import { RpgModule } from './rpg/rpg.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { WorkersModule } from './workers/workers.module.js';
     LoggerModule,
     DiscordModule,
     WorkersModule,
+    RpgModule,
   ],
 })
 export class AppModule {}
