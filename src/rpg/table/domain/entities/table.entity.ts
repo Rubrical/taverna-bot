@@ -90,6 +90,7 @@ export class Table {
       throw new PlayerAlreadyOnTableError('Player already exists at the table');
     }
 
+    this._players.push(newPlayer);
     this.updateActions();
   }
 
