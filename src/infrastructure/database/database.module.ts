@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { MongoTransactionProvider } from './mongo-transaction-provider';
 
 @Module({
   imports: [
@@ -11,5 +12,6 @@ import { MongooseModule } from '@nestjs/mongoose';
       }),
     }),
   ],
+  providers: [MongoTransactionProvider],
 })
 export class DatabaseModule {}

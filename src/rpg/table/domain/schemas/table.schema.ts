@@ -17,7 +17,7 @@ export class TablePersistence {
   @Prop({ required: true })
   systemName: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   guildDiscordId: string;
 
   @Prop({ required: true })

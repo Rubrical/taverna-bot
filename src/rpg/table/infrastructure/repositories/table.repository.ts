@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+import type { Repository } from '../../../../common/repositories/repository.interface.js';
+
 import { Table, type TableRestore } from '../../domain/entities/table.entity.js';
 import { TablePlayer, type TablePlayerRestore } from '../../domain/entities/table-player.entity.js';
 import { TablePersistence, type TableDocument } from '../../domain/schemas/table.schema.js';
@@ -50,7 +52,7 @@ type TablePersistenceData = {
 };
 
 @Injectable()
-export class TableRepository {
+export class TableRepository implements Repository<Table, Table, string, TableSearchCriteria> {
   constructor(
     @InjectModel(TablePersistence.name)
     private readonly tableModel: Model<TableDocument>,
