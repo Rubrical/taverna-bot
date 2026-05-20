@@ -1,10 +1,12 @@
 import type { LogLevel } from '../../../common/types/index.js';
 
+export type LogKind = 'system' | 'audit';
+
 export interface LogMetadata {
+  readonly kind?: LogKind;
   readonly [key: string]: unknown;
 }
 
-export type LogKind = 'system' | 'audit';
 export interface LogEntry {
   readonly level: LogLevel;
   readonly message: string;

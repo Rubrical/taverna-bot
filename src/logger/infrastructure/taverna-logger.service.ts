@@ -2,7 +2,7 @@ import { ConsoleLogger, Injectable, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { LogLevel } from '../../common/types/index.js';
-import type { LogMetadata } from '../domain/interfaces/log-entry.interface.js';
+import type { LogKind, LogMetadata } from '../domain/interfaces/log-entry.interface.js';
 import { LogPublisher } from './log-publisher.service.js';
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -55,13 +55,34 @@ export class TavernaLogger extends ConsoleLogger {
   }
 
   private publish(level: LogLevel, message: unknown, context?: string, metadata?: LogMetadata): void {
+    const normalizedLogMetadata = this.extractLogMetadata(metadata);
+
     this.publisher.publish({
       level,
       message: this.formatMessageForTransport(message),
       context,
+      kind: normalizedLogMetadata.kind,
       timestamp: new Date().toISOString(),
-      metadata,
+      metadata: normalizedLogMetadata.metadata,
     });
+  }
+
+  private extractLogMetadata(metadata?: LogMetadata): {
+    readonly kind?: LogKind;
+    readonly metadata?: LogMetadata;
+  } {
+    if (!metadata) {
+      return {};
+    }
+
+    const { kind, ...rest } = metadata;
+    const normalizedMetadata = Object.keys(rest).length > 0 ? rest : undefined;
+
+    if (this.isLogKind(kind)) {
+      return { kind, metadata: normalizedMetadata };
+    }
+
+    return { metadata: normalizedMetadata };
   }
 
   private resolveContextAndMetadata(value?: string | LogMetadata): {
@@ -128,6 +149,10 @@ export class TavernaLogger extends ConsoleLogger {
 
   private isMetadata(value: unknown): value is LogMetadata {
     return !!value && typeof value === 'object' && !(value instanceof Error);
+  }
+
+  private isLogKind(value: unknown): value is LogKind {
+    return value === 'system' || value === 'audit';
   }
 
   private formatMessageForTransport(message: unknown): string {
