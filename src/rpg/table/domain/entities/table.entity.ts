@@ -119,6 +119,16 @@ export class Table {
     this.updateActions();
   }
 
+  unarchive(): void {
+    if (this._status === 'active') {
+      return;
+    }
+
+    this._status = 'active';
+    this._archivedAt = undefined;
+    this.updateActions();
+  }
+
   private assertTableIsUpdatable(): void {
     if (this._status === 'archived') {
       throw new TableNonUpdatableError('This table is archived and cannot be updated');

@@ -145,6 +145,33 @@ describe('Table', () => {
     expect(table.version).toBe(2);
   });
 
+  it('unarchives an archived table and updates control fields', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const table = createTable();
+    const archivedAt = new Date('2026-01-02T00:00:00.000Z');
+    const unarchivedAt = new Date('2026-01-03T00:00:00.000Z');
+
+    jest.setSystemTime(archivedAt);
+    table.archive();
+
+    jest.setSystemTime(unarchivedAt);
+    table.unarchive();
+
+    expect(table.status).toBe('active');
+    expect(table.archivedAt).toBeUndefined();
+    expect(table.updatedAt).toEqual(unarchivedAt);
+    expect(table.version).toBe(3);
+  });
+
+  it('does not update active tables when unarchiving', () => {
+    const table = createTable();
+
+    table.unarchive();
+
+    expect(table.status).toBe('active');
+    expect(table.version).toBe(1);
+  });
+
   it('does not update archived tables', () => {
     const table = createTable();
     table.archive();
