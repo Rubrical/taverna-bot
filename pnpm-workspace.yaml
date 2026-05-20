@@ -1,0 +1,4 @@
+allowBuilds:
+  '@nestjs/core': true
+  necord: true
+  unrs-resolver: true
