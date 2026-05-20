@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { TableModule } from './table/table.module';
+
+import { TableModule } from './table/table.module.js';
 
 @Module({
   imports: [TableModule],
