@@ -97,6 +97,9 @@ export class LogEntry {
 }
 ```
 
+### Existing contracts:
+- repository at `src/common/repositories/repository.interface.ts`
+
 ---
 
 ## 3. Architecture
@@ -198,6 +201,7 @@ refactor/<description>
 - **Never** hardcode secrets or connection strings.
 - Use `.env.example` as the reference for required vars.
 - Use `config.getOrThrow<T>()` for required variables, `config.get<T>(key, default)` for optional ones.
+- Use `pnpm` for all npm actions once it is available at your environment
 
 ---
 

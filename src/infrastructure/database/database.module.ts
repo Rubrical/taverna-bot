@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
+import { MongoTransactionProvider } from './mongo-transaction-provider.js';
+
 @Module({
   imports: [
     MongooseModule.forRootAsync({
@@ -11,5 +13,7 @@ import { MongooseModule } from '@nestjs/mongoose';
       }),
     }),
   ],
+  providers: [MongoTransactionProvider],
+  exports: [MongoTransactionProvider],
 })
 export class DatabaseModule {}

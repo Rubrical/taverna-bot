@@ -74,6 +74,38 @@ describe('TavernaLogger', () => {
     );
   });
 
+  it('should promote a valid metadata kind to the log entry kind', () => {
+    logger.setContext('TableService');
+
+    logger.log('Table created', { kind: 'audit', tableId: 'table-id' });
+
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'log',
+        message: 'Table created',
+        context: 'TableService',
+        kind: 'audit',
+        metadata: { tableId: 'table-id' },
+      }),
+    );
+  });
+
+  it('should ignore invalid metadata kind values', () => {
+    logger.setContext('TableService');
+
+    logger.log('Table created', { kind: 'invalid' as never, tableId: 'table-id' });
+
+    expect(publisher.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'log',
+        message: 'Table created',
+        context: 'TableService',
+        metadata: { tableId: 'table-id' },
+      }),
+    );
+    expect(publisher.publish.mock.calls[0]?.[0].kind).toBeUndefined();
+  });
+
   it('should support explicit context for Nest logger compatibility', () => {
     logger.log('Application started', 'Bootstrap');
 
