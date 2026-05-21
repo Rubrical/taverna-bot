@@ -220,3 +220,16 @@ refactor/<description>
 - When injecting the cache use the following sintax: `@Inject(CACHE_MANAGER) private readonly _cache: Cache`.
 - Import both Cache and CACHE_MANAGER from the `@nestjs/cache-manager` package.
 - All cache keys should be stored at the _"src/infrastructure/cache/cache-keys.ts"_ file
+
+---
+
+## 9. Discord Commands
+
+- RPG grouped commands must use `@RpgCommand` from `src/discord/commands-decorators/rpg-command.decorator.ts`.
+- RPG table actions must be implemented as Necord subcommands with `@Subcommand` under the `/rpg table <action>` group.
+- Keep each RPG table subcommand in its own file at `src/discord/commands/rpg/`, using kebab-case names like `table-create.command.ts`.
+- Command classes must follow the `Rpg<Table><Action>Command` naming pattern, such as `RpgTableCreateCommand` and `RpgTableListCommand`.
+- Commands must depend on application services exported by domain modules through NestJS DI, never on repositories or infrastructure from another module.
+- Use `TavernaLogger` for command failures and side effects that should be queryable later.
+- Prefer `ephemeral: true` for private command flows, operational queries, validation failures, and error responses.
+- Unit tests for RPG commands must live in `test/unit/discord/rpg/<command>.spec.ts`.
