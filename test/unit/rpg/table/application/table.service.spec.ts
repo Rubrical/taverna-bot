@@ -183,7 +183,7 @@ describe('TableService', () => {
     repository.findById.mockResolvedValue(table);
     repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
 
-    const result = await service.addPlayer('table-id', 'Player Four', 'discord-player-4');
+    const result = await service.addPlayer('table-id', 'Player Four', 'discord-player-4', 'master-1');
 
     expect(repository.findById).toHaveBeenCalledWith('table-id');
     expect(repository.save).toHaveBeenCalledWith(table);
@@ -192,6 +192,7 @@ describe('TableService', () => {
     expect(logger.log).toHaveBeenCalledWith('Player added to table', {
       tableId: 'table-id',
       playerDiscordId: 'discord-player-4',
+      requesterDiscordId: 'master-1',
       kind: 'audit',
     });
   });
@@ -201,13 +202,49 @@ describe('TableService', () => {
     repository.findById.mockResolvedValue(table);
     repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
 
-    const result = await service.inactivatePlayer('table-id', 'discord-player-3');
+    const result = await service.inactivatePlayer('table-id', 'discord-player-3', 'master-1');
 
     expect(repository.save).toHaveBeenCalledWith(table);
     expect(result.players[2].status).toBe('absent');
     expect(logger.log).toHaveBeenCalledWith('Player inactivated at table', {
       tableId: 'table-id',
       playerDiscordId: 'discord-player-3',
+      requesterDiscordId: 'master-1',
+      kind: 'audit',
+    });
+  });
+
+  it('reactivates an absent player on an existing table', async () => {
+    const table = createTable();
+    table.inactivatePlayer('discord-player-3', 'master-1');
+    repository.findById.mockResolvedValue(table);
+    repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
+
+    const result = await service.reactivatePlayer('table-id', 'discord-player-3', 'master-1');
+
+    expect(repository.save).toHaveBeenCalledWith(table);
+    expect(result.players[2].status).toBe('active');
+    expect(logger.log).toHaveBeenCalledWith('Player reactivated at table', {
+      tableId: 'table-id',
+      playerDiscordId: 'discord-player-3',
+      requesterDiscordId: 'master-1',
+      kind: 'audit',
+    });
+  });
+
+  it('bans a player on an existing table', async () => {
+    const table = createTable();
+    repository.findById.mockResolvedValue(table);
+    repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
+
+    const result = await service.banPlayer('table-id', 'discord-player-3', 'master-1');
+
+    expect(repository.save).toHaveBeenCalledWith(table);
+    expect(result.players[2].status).toBe('banned');
+    expect(logger.log).toHaveBeenCalledWith('Player banned at table', {
+      tableId: 'table-id',
+      playerDiscordId: 'discord-player-3',
+      requesterDiscordId: 'master-1',
       kind: 'audit',
     });
   });

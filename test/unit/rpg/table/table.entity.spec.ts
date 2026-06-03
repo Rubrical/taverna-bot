@@ -75,7 +75,7 @@ describe('Table', () => {
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
 
     jest.setSystemTime(updatedAt);
-    table.addPlayer(new TablePlayer('Player Three', 'discord-player-3'));
+    table.addPlayer(new TablePlayer('Player Three', 'discord-player-3'), 'master-1');
 
     expect(table.players).toHaveLength(3);
     expect(table.players.at(-1)?.username).toBe('Player Three');
@@ -86,7 +86,9 @@ describe('Table', () => {
   it('does not add duplicated players', () => {
     const table = createTable();
 
-    expect(() => table.addPlayer(new TablePlayer('Player One', 'discord-player-3'))).toThrow(PlayerAlreadyOnTableError);
+    expect(() => table.addPlayer(new TablePlayer('Player One', 'discord-player-3'), 'master-1')).toThrow(
+      PlayerAlreadyOnTableError,
+    );
   });
 
   it('does not add players above the active player limit', () => {
@@ -100,7 +102,9 @@ describe('Table', () => {
       })),
     });
 
-    expect(() => table.addPlayer(new TablePlayer('Player Eight', 'discord-player-8'))).toThrow(TableNonUpdatableError);
+    expect(() => table.addPlayer(new TablePlayer('Player Eight', 'discord-player-8'), 'master-1')).toThrow(
+      TableNonUpdatableError,
+    );
   });
 
   it('inactivates an active player and updates control fields', () => {
@@ -118,7 +122,7 @@ describe('Table', () => {
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
 
     jest.setSystemTime(updatedAt);
-    table.inactivatePlayer('discord-player-3');
+    table.inactivatePlayer('discord-player-3', 'master-1');
 
     expect(table.players[2].status).toBe('absent');
     expect(table.updatedAt).toEqual(updatedAt);
@@ -128,7 +132,119 @@ describe('Table', () => {
   it('does not inactivate players below the active player minimum', () => {
     const table = createTable();
 
-    expect(() => table.inactivatePlayer('discord-player-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.inactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+  });
+
+  it('reactivates an absent player and updates control fields', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players: [
+        { playerDiscordId: 'discord-player-1', playerName: 'Player One' },
+        { playerDiscordId: 'discord-player-2', playerName: 'Player Two' },
+        { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
+      ],
+    });
+    table.inactivatePlayer('discord-player-3', 'master-1');
+    const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+
+    jest.setSystemTime(updatedAt);
+    table.reactivatePlayer('discord-player-3', 'master-1');
+
+    expect(table.players).toHaveLength(3);
+    expect(table.players[2].status).toBe('active');
+    expect(table.updatedAt).toEqual(updatedAt);
+    expect(table.version).toBe(3);
+  });
+
+  it('does not reactivate banned players', () => {
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players: [
+        { playerDiscordId: 'discord-player-1', playerName: 'Player One' },
+        { playerDiscordId: 'discord-player-2', playerName: 'Player Two' },
+        { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
+      ],
+    });
+    table.banPlayer('discord-player-3', 'master-1');
+
+    expect(() => table.reactivatePlayer('discord-player-3', 'master-1')).toThrow(TableNonUpdatableError);
+  });
+
+  it('does not reactivate players above the active player limit', () => {
+    const players = Array.from({ length: 8 }, (_, index) => ({
+      playerDiscordId: `discord-player-${index}`,
+      playerName: `Player ${index}`,
+    }));
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players,
+    });
+    table.inactivatePlayer('discord-player-7', 'master-1');
+
+    expect(() => table.reactivatePlayer('discord-player-7', 'master-1')).toThrow(TableNonUpdatableError);
+  });
+
+  it('bans an active player and updates control fields', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players: [
+        { playerDiscordId: 'discord-player-1', playerName: 'Player One' },
+        { playerDiscordId: 'discord-player-2', playerName: 'Player Two' },
+        { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
+      ],
+    });
+    const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+
+    jest.setSystemTime(updatedAt);
+    table.banPlayer('discord-player-3', 'master-1');
+
+    expect(table.players).toHaveLength(3);
+    expect(table.players[2].status).toBe('banned');
+    expect(table.updatedAt).toEqual(updatedAt);
+    expect(table.version).toBe(2);
+  });
+
+  it('does not ban players below the active player minimum', () => {
+    const table = createTable();
+
+    expect(() => table.banPlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+  });
+
+  it('does not allow non-master users to update players', () => {
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players: [
+        { playerDiscordId: 'discord-player-1', playerName: 'Player One' },
+        { playerDiscordId: 'discord-player-2', playerName: 'Player Two' },
+        { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
+      ],
+    });
+    table.inactivatePlayer('discord-player-3', 'master-1');
+
+    expect(() => table.addPlayer(new TablePlayer('Player Four', 'discord-player-4'), 'discord-player-1')).toThrow(
+      'Only the table master can update players',
+    );
+    expect(() => table.inactivatePlayer('discord-player-1', 'discord-player-1')).toThrow(
+      'Only the table master can update players',
+    );
+    expect(() => table.reactivatePlayer('discord-player-3', 'discord-player-1')).toThrow(
+      'Only the table master can update players',
+    );
+    expect(() => table.banPlayer('discord-player-1', 'discord-player-1')).toThrow(
+      'Only the table master can update players',
+    );
   });
 
   it('archives the table and updates control fields', () => {
@@ -176,8 +292,12 @@ describe('Table', () => {
     const table = createTable();
     table.archive();
 
-    expect(() => table.addPlayer(new TablePlayer('Player Three', 'discord-player-3'))).toThrow(TableNonUpdatableError);
-    expect(() => table.inactivatePlayer('discord-player-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.addPlayer(new TablePlayer('Player Three', 'discord-player-3'), 'master-1')).toThrow(
+      TableNonUpdatableError,
+    );
+    expect(() => table.inactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.reactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.banPlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
     expect(() => table.archive()).toThrow(TableNonUpdatableError);
   });
 });

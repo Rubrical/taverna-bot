@@ -41,15 +41,21 @@ export class TableService {
     return this._repository.findMany(criteria);
   }
 
-  async addPlayer(tableId: string, playerName: string, playerDiscordId: string): Promise<Table> {
+  async addPlayer(
+    tableId: string,
+    playerName: string,
+    playerDiscordId: string,
+    requesterDiscordId: string,
+  ): Promise<Table> {
     return this.runAuditTransaction('add-table-player', async () => {
       const table = await this.getExistingTable(tableId);
-      table.addPlayer(new TablePlayer(playerName, playerDiscordId));
+      table.addPlayer(new TablePlayer(playerName, playerDiscordId), requesterDiscordId);
       const savedTable = await this._repository.save(table);
 
       this._logger.log('Player added to table', {
         tableId: savedTable.id,
         playerDiscordId,
+        requesterDiscordId,
         kind: 'audit',
       });
 
@@ -57,15 +63,50 @@ export class TableService {
     });
   }
 
-  async inactivatePlayer(tableId: string, playerDiscordId: string): Promise<Table> {
+  async inactivatePlayer(tableId: string, playerDiscordId: string, requesterDiscordId: string): Promise<Table> {
     return this.runAuditTransaction('inactivate-table-player', async () => {
       const table = await this.getExistingTable(tableId);
-      table.inactivatePlayer(playerDiscordId);
+      table.inactivatePlayer(playerDiscordId, requesterDiscordId);
       const savedTable = await this._repository.save(table);
 
       this._logger.log('Player inactivated at table', {
         tableId: savedTable.id,
         playerDiscordId,
+        requesterDiscordId,
+        kind: 'audit',
+      });
+
+      return savedTable;
+    });
+  }
+
+  async reactivatePlayer(tableId: string, playerDiscordId: string, requesterDiscordId: string): Promise<Table> {
+    return this.runAuditTransaction('reactivate-table-player', async () => {
+      const table = await this.getExistingTable(tableId);
+      table.reactivatePlayer(playerDiscordId, requesterDiscordId);
+      const savedTable = await this._repository.save(table);
+
+      this._logger.log('Player reactivated at table', {
+        tableId: savedTable.id,
+        playerDiscordId,
+        requesterDiscordId,
+        kind: 'audit',
+      });
+
+      return savedTable;
+    });
+  }
+
+  async banPlayer(tableId: string, playerDiscordId: string, requesterDiscordId: string): Promise<Table> {
+    return this.runAuditTransaction('ban-table-player', async () => {
+      const table = await this.getExistingTable(tableId);
+      table.banPlayer(playerDiscordId, requesterDiscordId);
+      const savedTable = await this._repository.save(table);
+
+      this._logger.log('Player banned at table', {
+        tableId: savedTable.id,
+        playerDiscordId,
+        requesterDiscordId,
         kind: 'audit',
       });
 

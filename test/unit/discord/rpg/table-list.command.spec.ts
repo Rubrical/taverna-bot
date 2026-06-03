@@ -116,6 +116,7 @@ describe('RpgTableListCommand', () => {
           createPlayer('player-1', 'Player One'),
           createPlayer('player-2', 'Player Two'),
           createPlayer('player-3', 'Player Three', 'absent'),
+          createPlayer('player-4', 'Player Four', 'banned'),
         ],
       }),
     ]);
@@ -138,6 +139,11 @@ describe('RpgTableListCommand', () => {
     expect(embedJson).toContain('System: dnd5e');
     expect(embedJson).toContain('Master: <@master-1>');
     expect(embedJson).toContain('Players: 2');
+    expect(embedJson).toContain('Active:\\n- <@player-1>\\n- <@player-2>');
+    expect(embedJson).toContain('Absent:\\n- <@player-3>');
+    expect(embedJson).toContain('Banned:\\n- <@player-4>');
+    expect(embedJson.indexOf('Active:')).toBeLessThan(embedJson.indexOf('Absent:'));
+    expect(embedJson.indexOf('Absent:')).toBeLessThan(embedJson.indexOf('Banned:'));
     expect(embedJson).toContain('Status: active');
   });
 

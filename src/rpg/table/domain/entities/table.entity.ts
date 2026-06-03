@@ -77,8 +77,9 @@ export class Table {
     return table;
   }
 
-  addPlayer(newPlayer: TablePlayer): void {
+  addPlayer(newPlayer: TablePlayer, requesterDiscordId: string): void {
     this.assertTableIsUpdatable();
+    this.assertRequesterIsMaster(requesterDiscordId);
 
     const validPlayers = this._players.filter((p) => p.status === 'active').length;
     if (validPlayers >= this.MAX_PLAYERS) {
@@ -94,8 +95,9 @@ export class Table {
     this.updateActions();
   }
 
-  inactivatePlayer(userDiscordId: string): void {
+  inactivatePlayer(userDiscordId: string, requesterDiscordId: string): void {
     this.assertTableIsUpdatable();
+    this.assertRequesterIsMaster(requesterDiscordId);
 
     const validPlayers = this._players.filter((p) => p.status === 'active').length;
     if (validPlayers <= this.MIN_PLAYERS) {
@@ -108,6 +110,42 @@ export class Table {
     }
 
     player.changePlayerStatus('absent');
+    this.updateActions();
+  }
+
+  reactivatePlayer(userDiscordId: string, requesterDiscordId: string): void {
+    this.assertTableIsUpdatable();
+    this.assertRequesterIsMaster(requesterDiscordId);
+
+    const validPlayers = this._players.filter((p) => p.status === 'active').length;
+    if (validPlayers >= this.MAX_PLAYERS) {
+      throw new TableNonUpdatableError('Table limit players already reached');
+    }
+
+    const player = this._players.find((p) => p.userDiscordId === userDiscordId && p.status === 'absent');
+    if (!player) {
+      throw new TableNonUpdatableError('Player is not absent at the table');
+    }
+
+    player.changePlayerStatus('active');
+    this.updateActions();
+  }
+
+  banPlayer(userDiscordId: string, requesterDiscordId: string): void {
+    this.assertTableIsUpdatable();
+    this.assertRequesterIsMaster(requesterDiscordId);
+
+    const validPlayers = this._players.filter((p) => p.status === 'active').length;
+    if (validPlayers <= this.MIN_PLAYERS) {
+      throw new TableNonUpdatableError('Table limit players already reached');
+    }
+
+    const player = this._players.find((p) => p.userDiscordId === userDiscordId && p.status === 'active');
+    if (!player) {
+      throw new TableNonUpdatableError('Player is not active at the table');
+    }
+
+    player.changePlayerStatus('banned');
     this.updateActions();
   }
 
@@ -132,6 +170,12 @@ export class Table {
   private assertTableIsUpdatable(): void {
     if (this._status === 'archived') {
       throw new TableNonUpdatableError('This table is archived and cannot be updated');
+    }
+  }
+
+  private assertRequesterIsMaster(requesterDiscordId: string): void {
+    if (requesterDiscordId !== this._masterDiscordId) {
+      throw new TableNonUpdatableError('Only the table master can update players');
     }
   }
 

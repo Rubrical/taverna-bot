@@ -5,6 +5,7 @@ import { Context, Subcommand, type SlashCommandContext } from 'necord';
 import { TavernaLogger } from '../../../logger/infrastructure/taverna-logger.service.js';
 import { TableService } from '../../../rpg/table/application/table.service.js';
 import type { Table } from '../../../rpg/table/domain/entities/table.entity.js';
+import type { TablePlayerState } from '../../../rpg/table/domain/entities/table-player.entity.js';
 import { TableOperationFailedError } from '../../../rpg/table/domain/errors/table-operation-failed-error.js';
 import { RpgCommand } from '../../commands-decorators/rpg-command.decorator.js';
 
@@ -67,13 +68,32 @@ export class RpgTableListCommand {
 
   private buildTableDescription(table: Table): string {
     const activePlayers = table.players.filter((player) => player.status === 'active').length;
+    const registeredPlayers = this.buildRegisteredPlayersDescription(table);
 
     return [
       `System: ${table.systemName}`,
       `Master: <@${table.masterDiscordId}>`,
       `Players: ${activePlayers}`,
+      `Registered players:\n${registeredPlayers}`,
       `Status: ${table.status}`,
     ].join('\n');
+  }
+
+  private buildRegisteredPlayersDescription(table: Table): string {
+    const statusOrder: readonly TablePlayerState[] = ['active', 'absent', 'banned'];
+    const groups = statusOrder.flatMap((status) => {
+      const players = table.players.filter((player) => player.status === status);
+
+      if (!players.length) {
+        return [];
+      }
+
+      const statusLabel = `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+
+      return [`${statusLabel}:`, ...players.map((player) => `- <@${player.userDiscordId}>`)].join('\n');
+    });
+
+    return groups.length ? groups.join('\n') : '- None';
   }
 
   private truncate(value: string, maxLength: number): string {
