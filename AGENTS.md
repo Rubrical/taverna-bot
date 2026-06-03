@@ -233,3 +233,12 @@ refactor/<description>
 - Use `TavernaLogger` for command failures and side effects that should be queryable later.
 - Prefer `ephemeral: true` for private command flows, operational queries, validation failures, and error responses.
 - Unit tests for RPG commands must live in `test/unit/discord/rpg/<command>.spec.ts`.
+
+## 10. Agents Rules
+
+- Never apply multiple independent changes in a single patch.
+- Before modifying files, explain what the next change will be.
+- Apply one change at a time.
+- After each change, show the diff for that isolated change.
+- Wait for my approval before continuing to the next change when the change affects multiple files or multiple responsibilities.
+- Do not group refactoring, bug fixes, formatting, and tests in the same patch.
