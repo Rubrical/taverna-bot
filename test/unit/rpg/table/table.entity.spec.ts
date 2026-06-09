@@ -107,7 +107,7 @@ describe('Table', () => {
     );
   });
 
-  it('inactivates an active player and updates control fields', () => {
+  it('removes an active player and updates control fields', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
     const table = new Table({
       guildDiscordId: 'guild-1',
@@ -122,17 +122,58 @@ describe('Table', () => {
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
 
     jest.setSystemTime(updatedAt);
-    table.inactivatePlayer('discord-player-3', 'master-1');
+    table.removePlayer('discord-player-3', 'master-1');
 
     expect(table.players[2].status).toBe('absent');
     expect(table.updatedAt).toEqual(updatedAt);
     expect(table.version).toBe(2);
   });
 
-  it('does not inactivate players below the active player minimum', () => {
+  it('does not remove players below the active player minimum', () => {
     const table = createTable();
 
-    expect(() => table.inactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.removePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+  });
+
+  it('allows an active player to leave and updates control fields', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const table = createTable();
+    const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+
+    jest.setSystemTime(updatedAt);
+    table.playerLeave('discord-player-1');
+
+    expect(table.players[0].status).toBe('absent');
+    expect(table.updatedAt).toEqual(updatedAt);
+    expect(table.version).toBe(2);
+  });
+
+  it('allows a player to leave below the active player minimum', () => {
+    const table = createTable();
+
+    table.playerLeave('discord-player-1');
+
+    expect(table.players[0].status).toBe('absent');
+  });
+
+  it('does not allow non-active players to leave', () => {
+    const table = new Table({
+      guildDiscordId: 'guild-1',
+      systemName: 'dnd5e',
+      masterDiscordId: 'master-1',
+      players: [
+        { playerDiscordId: 'discord-player-1', playerName: 'Player One' },
+        { playerDiscordId: 'discord-player-2', playerName: 'Player Two' },
+        { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
+        { playerDiscordId: 'discord-player-4', playerName: 'Player Four' },
+      ],
+    });
+    table.playerLeave('discord-player-1');
+    table.banPlayer('discord-player-3', 'master-1');
+
+    expect(() => table.playerLeave('discord-player-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.playerLeave('discord-player-3')).toThrow(TableNonUpdatableError);
+    expect(() => table.playerLeave('discord-player-5')).toThrow(TableNonUpdatableError);
   });
 
   it('reactivates an absent player and updates control fields', () => {
@@ -147,7 +188,7 @@ describe('Table', () => {
         { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
       ],
     });
-    table.inactivatePlayer('discord-player-3', 'master-1');
+    table.removePlayer('discord-player-3', 'master-1');
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
 
     jest.setSystemTime(updatedAt);
@@ -186,7 +227,7 @@ describe('Table', () => {
       masterDiscordId: 'master-1',
       players,
     });
-    table.inactivatePlayer('discord-player-7', 'master-1');
+    table.removePlayer('discord-player-7', 'master-1');
 
     expect(() => table.reactivatePlayer('discord-player-7', 'master-1')).toThrow(TableNonUpdatableError);
   });
@@ -231,12 +272,12 @@ describe('Table', () => {
         { playerDiscordId: 'discord-player-3', playerName: 'Player Three' },
       ],
     });
-    table.inactivatePlayer('discord-player-3', 'master-1');
+    table.removePlayer('discord-player-3', 'master-1');
 
     expect(() => table.addPlayer(new TablePlayer('Player Four', 'discord-player-4'), 'discord-player-1')).toThrow(
       'Only the table master can update players',
     );
-    expect(() => table.inactivatePlayer('discord-player-1', 'discord-player-1')).toThrow(
+    expect(() => table.removePlayer('discord-player-1', 'discord-player-1')).toThrow(
       'Only the table master can update players',
     );
     expect(() => table.reactivatePlayer('discord-player-3', 'discord-player-1')).toThrow(
@@ -295,7 +336,8 @@ describe('Table', () => {
     expect(() => table.addPlayer(new TablePlayer('Player Three', 'discord-player-3'), 'master-1')).toThrow(
       TableNonUpdatableError,
     );
-    expect(() => table.inactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.removePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
+    expect(() => table.playerLeave('discord-player-1')).toThrow(TableNonUpdatableError);
     expect(() => table.reactivatePlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
     expect(() => table.banPlayer('discord-player-1', 'master-1')).toThrow(TableNonUpdatableError);
     expect(() => table.archive()).toThrow(TableNonUpdatableError);

@@ -197,16 +197,16 @@ describe('TableService', () => {
     });
   });
 
-  it('inactivates a player on an existing table', async () => {
+  it('removes a player on an existing table', async () => {
     const table = createTable();
     repository.findById.mockResolvedValue(table);
     repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
 
-    const result = await service.inactivatePlayer('table-id', 'discord-player-3', 'master-1');
+    const result = await service.removePlayer('table-id', 'discord-player-3', 'master-1');
 
     expect(repository.save).toHaveBeenCalledWith(table);
     expect(result.players[2].status).toBe('absent');
-    expect(logger.log).toHaveBeenCalledWith('Player inactivated at table', {
+    expect(logger.log).toHaveBeenCalledWith('Player removed from table', {
       tableId: 'table-id',
       playerDiscordId: 'discord-player-3',
       requesterDiscordId: 'master-1',
@@ -214,9 +214,26 @@ describe('TableService', () => {
     });
   });
 
+  it('lets a player leave an existing table', async () => {
+    const table = createTable();
+    repository.findById.mockResolvedValue(table);
+    repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
+
+    const result = await service.playerLeave('table-id', 'discord-player-1');
+
+    expect(repository.findById).toHaveBeenCalledWith('table-id');
+    expect(repository.save).toHaveBeenCalledWith(table);
+    expect(result.players[0].status).toBe('absent');
+    expect(logger.log).toHaveBeenCalledWith('Player left table', {
+      tableId: 'table-id',
+      playerDiscordId: 'discord-player-1',
+      kind: 'audit',
+    });
+  });
+
   it('reactivates an absent player on an existing table', async () => {
     const table = createTable();
-    table.inactivatePlayer('discord-player-3', 'master-1');
+    table.removePlayer('discord-player-3', 'master-1');
     repository.findById.mockResolvedValue(table);
     repository.save.mockImplementation((savedTable) => Promise.resolve(savedTable));
 

@@ -95,7 +95,7 @@ export class Table {
     this.updateActions();
   }
 
-  inactivatePlayer(userDiscordId: string, requesterDiscordId: string): void {
+  removePlayer(userDiscordId: string, requesterDiscordId: string): void {
     this.assertTableIsUpdatable();
     this.assertRequesterIsMaster(requesterDiscordId);
 
@@ -103,6 +103,18 @@ export class Table {
     if (validPlayers <= this.MIN_PLAYERS) {
       throw new TableNonUpdatableError('Table limit players already reached');
     }
+
+    const player = this._players.find((p) => p.userDiscordId === userDiscordId && p.status === 'active');
+    if (!player) {
+      throw new TableNonUpdatableError('Player is not active at the table');
+    }
+
+    player.changePlayerStatus('absent');
+    this.updateActions();
+  }
+
+  playerLeave(userDiscordId: string): void {
+    this.assertTableIsUpdatable();
 
     const player = this._players.find((p) => p.userDiscordId === userDiscordId && p.status === 'active');
     if (!player) {

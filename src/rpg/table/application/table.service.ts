@@ -63,16 +63,32 @@ export class TableService {
     });
   }
 
-  async inactivatePlayer(tableId: string, playerDiscordId: string, requesterDiscordId: string): Promise<Table> {
-    return this.runAuditTransaction('inactivate-table-player', async () => {
+  async removePlayer(tableId: string, playerDiscordId: string, requesterDiscordId: string): Promise<Table> {
+    return this.runAuditTransaction('remove-table-player', async () => {
       const table = await this.getExistingTable(tableId);
-      table.inactivatePlayer(playerDiscordId, requesterDiscordId);
+      table.removePlayer(playerDiscordId, requesterDiscordId);
       const savedTable = await this._repository.save(table);
 
-      this._logger.log('Player inactivated at table', {
+      this._logger.log('Player removed from table', {
         tableId: savedTable.id,
         playerDiscordId,
         requesterDiscordId,
+        kind: 'audit',
+      });
+
+      return savedTable;
+    });
+  }
+
+  async playerLeave(tableId: string, playerDiscordId: string): Promise<Table> {
+    return this.runAuditTransaction('leave-table-player', async () => {
+      const table = await this.getExistingTable(tableId);
+      table.playerLeave(playerDiscordId);
+      const savedTable = await this._repository.save(table);
+
+      this._logger.log('Player left table', {
+        tableId: savedTable.id,
+        playerDiscordId,
         kind: 'audit',
       });
 

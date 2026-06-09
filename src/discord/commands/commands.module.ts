@@ -10,6 +10,7 @@ import { CommandLoggingInterceptor } from './interceptors/command-logging-interc
 import { PingCommand } from './ping.command.js';
 import { RpgTableAddPlayerCommand } from './rpg/table-add-player.command.js';
 import { RpgTableCreateCommand } from './rpg/table-create.command.js';
+import { RpgTableLeaveCommand } from './rpg/table-leave.command.js';
 import { RpgTableListCommand } from './rpg/table-list.command.js';
 import { RpgTableReactivatePlayerCommand } from './rpg/table-reactivate-player.command.js';
 import { RpgTableRemovePlayerCommand } from './rpg/table-remove-player.command.js';
@@ -24,6 +25,7 @@ import { RpgTableRemovePlayerCommand } from './rpg/table-remove-player.command.j
     LogsCommand,
     RpgTableAddPlayerCommand,
     RpgTableCreateCommand,
+    RpgTableLeaveCommand,
     RpgTableListCommand,
     RpgTableReactivatePlayerCommand,
     RpgTableRemovePlayerCommand,
